@@ -1,0 +1,19 @@
+                        -HD:\Work\ncnn-android-yolo11-master\app\src\main\jni
+-DCMAKE_SYSTEM_NAME=Android
+-DCMAKE_EXPORT_COMPILE_COMMANDS=ON
+-DCMAKE_SYSTEM_VERSION=24
+-DANDROID_PLATFORM=android-24
+-DANDROID_ABI=x86
+-DCMAKE_ANDROID_ARCH_ABI=x86
+-DANDROID_NDK=D:\APP\AndroidSDK\ndk\27.0.12077973
+-DCMAKE_ANDROID_NDK=D:\APP\AndroidSDK\ndk\27.0.12077973
+-DCMAKE_TOOLCHAIN_FILE=D:\APP\AndroidSDK\ndk\27.0.12077973\build\cmake\android.toolchain.cmake
+-DCMAKE_MAKE_PROGRAM=D:\APP\AndroidSDK\cmake\3.31.5\bin\ninja.exe
+-DCMAKE_LIBRARY_OUTPUT_DIRECTORY=D:\Work\ncnn-android-yolo11-master\app\build\intermediates\cxx\RelWithDebInfo\5i1i3m2q\obj\x86
+-DCMAKE_RUNTIME_OUTPUT_DIRECTORY=D:\Work\ncnn-android-yolo11-master\app\build\intermediates\cxx\RelWithDebInfo\5i1i3m2q\obj\x86
+-DCMAKE_BUILD_TYPE=RelWithDebInfo
+-BD:\Work\ncnn-android-yolo11-master\app\.cxx\RelWithDebInfo\5i1i3m2q\x86
+-GNinja
+-DANDROID_SUPPORT_FLEXIBLE_PAGE_SIZES=ON
+                        Build command args: []
+                        Version: 2

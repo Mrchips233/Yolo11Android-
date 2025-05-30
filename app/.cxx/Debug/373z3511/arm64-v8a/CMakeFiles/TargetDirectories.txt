@@ -1,0 +1,3 @@
+D:/Work/ncnn-android-yolo11-master/app/.cxx/Debug/373z3511/arm64-v8a/CMakeFiles/yolo11ncnn.dir
+D:/Work/ncnn-android-yolo11-master/app/.cxx/Debug/373z3511/arm64-v8a/CMakeFiles/edit_cache.dir
+D:/Work/ncnn-android-yolo11-master/app/.cxx/Debug/373z3511/arm64-v8a/CMakeFiles/rebuild_cache.dir

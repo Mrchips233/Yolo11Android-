@@ -1,0 +1,3 @@
+D:/Work/ncnn-android-yolo11-master/app/.cxx/RelWithDebInfo/5i1i3m2q/armeabi-v7a/CMakeFiles/yolo11ncnn.dir
+D:/Work/ncnn-android-yolo11-master/app/.cxx/RelWithDebInfo/5i1i3m2q/armeabi-v7a/CMakeFiles/edit_cache.dir
+D:/Work/ncnn-android-yolo11-master/app/.cxx/RelWithDebInfo/5i1i3m2q/armeabi-v7a/CMakeFiles/rebuild_cache.dir

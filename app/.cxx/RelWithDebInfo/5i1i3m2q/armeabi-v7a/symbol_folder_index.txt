@@ -1,0 +1,1 @@
+D:\Work\ncnn-android-yolo11-master\app\build\intermediates\cxx\RelWithDebInfo\5i1i3m2q\obj\armeabi-v7a

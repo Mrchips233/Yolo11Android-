@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">yolo11ncnn</string>
+    <string-array name="model_array">
+        <item>s-640</item>
+        <item>m-640</item>
+        <item>s-320</item>
+        <item>m-320</item>
+    </string-array>
+    <string-array name="cpugpu_array">
+        <item>CPU</item>
+        <item>GPU</item>
+        <item>turnip</item>
+    </string-array>
+    <string name="Accuracy">GPS 精度:</string>
+    <string name="Switch">切换摄像头</string>
+    <string name="YOLO">YOLO</string>
+    <string name="Camera">Camera</string>
+    <string name="Video_Capture_Start">Video_Capture_Start</string>
+    <string name="Video_Capture_Stop">Video_Capture_Stop</string>
+    <string name="Camera_switch">Camera_Switch</string>
+    <string name="Frame">Frame Extract</string>
+    <string name="VideoSelect">Select Video</string>
+    <string name="VideoPath">Your Video Path</string>
+    <string name="Handle">Video Handle</string>
+    <string name="GPSStatus">Status</string>
+    <string name="GPSStart">GPSStart</string>
+    <string name="GPSStop">GPSStop</string>
+    <string name="Status">GPSStatus</string>
+</resources>

@@ -1,0 +1,26 @@
+[
+{
+  "directory": "D:/Work/ncnn-android-yolo11-master/app/.cxx/Debug/373z3511/x86",
+  "command": "D:\\APP\\AndroidSDK\\ndk\\27.0.12077973\\toolchains\\llvm\\prebuilt\\windows-x86_64\\bin\\clang++.exe --target=i686-none-linux-android24 --sysroot=D:/APP/AndroidSDK/ndk/27.0.12077973/toolchains/llvm/prebuilt/windows-x86_64/sysroot -Dyolo11ncnn_EXPORTS -isystem D:/Work/ncnn-android-yolo11-master/app/src/main/jni/ncnn-20250503-android-vulkan/x86/include/ncnn -isystem D:/Work/ncnn-android-yolo11-master/app/src/main/jni/opencv-mobile-4.11.0-android/sdk/native/jni/include -g -DANDROID -fdata-sections -ffunction-sections -funwind-tables -fstack-protector-strong -no-canonical-prefixes -D__BIONIC_NO_PAGE_SIZE_MACRO -D_FORTIFY_SOURCE=2 -Wformat -Werror=format-security   -fno-limit-debug-info  -fPIC -fno-rtti -fno-exceptions -pthread -o CMakeFiles\\yolo11ncnn.dir\\yolo11ncnn.cpp.o -c D:\\Work\\ncnn-android-yolo11-master\\app\\src\\main\\jni\\yolo11ncnn.cpp",
+  "file": "D:\\Work\\ncnn-android-yolo11-master\\app\\src\\main\\jni\\yolo11ncnn.cpp",
+  "output": "CMakeFiles\\yolo11ncnn.dir\\yolo11ncnn.cpp.o"
+},
+{
+  "directory": "D:/Work/ncnn-android-yolo11-master/app/.cxx/Debug/373z3511/x86",
+  "command": "D:\\APP\\AndroidSDK\\ndk\\27.0.12077973\\toolchains\\llvm\\prebuilt\\windows-x86_64\\bin\\clang++.exe --target=i686-none-linux-android24 --sysroot=D:/APP/AndroidSDK/ndk/27.0.12077973/toolchains/llvm/prebuilt/windows-x86_64/sysroot -Dyolo11ncnn_EXPORTS -isystem D:/Work/ncnn-android-yolo11-master/app/src/main/jni/ncnn-20250503-android-vulkan/x86/include/ncnn -isystem D:/Work/ncnn-android-yolo11-master/app/src/main/jni/opencv-mobile-4.11.0-android/sdk/native/jni/include -g -DANDROID -fdata-sections -ffunction-sections -funwind-tables -fstack-protector-strong -no-canonical-prefixes -D__BIONIC_NO_PAGE_SIZE_MACRO -D_FORTIFY_SOURCE=2 -Wformat -Werror=format-security   -fno-limit-debug-info  -fPIC -fno-rtti -fno-exceptions -pthread -o CMakeFiles\\yolo11ncnn.dir\\yolo11.cpp.o -c D:\\Work\\ncnn-android-yolo11-master\\app\\src\\main\\jni\\yolo11.cpp",
+  "file": "D:\\Work\\ncnn-android-yolo11-master\\app\\src\\main\\jni\\yolo11.cpp",
+  "output": "CMakeFiles\\yolo11ncnn.dir\\yolo11.cpp.o"
+},
+{
+  "directory": "D:/Work/ncnn-android-yolo11-master/app/.cxx/Debug/373z3511/x86",
+  "command": "D:\\APP\\AndroidSDK\\ndk\\27.0.12077973\\toolchains\\llvm\\prebuilt\\windows-x86_64\\bin\\clang++.exe --target=i686-none-linux-android24 --sysroot=D:/APP/AndroidSDK/ndk/27.0.12077973/toolchains/llvm/prebuilt/windows-x86_64/sysroot -Dyolo11ncnn_EXPORTS -isystem D:/Work/ncnn-android-yolo11-master/app/src/main/jni/ncnn-20250503-android-vulkan/x86/include/ncnn -isystem D:/Work/ncnn-android-yolo11-master/app/src/main/jni/opencv-mobile-4.11.0-android/sdk/native/jni/include -g -DANDROID -fdata-sections -ffunction-sections -funwind-tables -fstack-protector-strong -no-canonical-prefixes -D__BIONIC_NO_PAGE_SIZE_MACRO -D_FORTIFY_SOURCE=2 -Wformat -Werror=format-security   -fno-limit-debug-info  -fPIC -fno-rtti -fno-exceptions -pthread -o CMakeFiles\\yolo11ncnn.dir\\yolo11_det.cpp.o -c D:\\Work\\ncnn-android-yolo11-master\\app\\src\\main\\jni\\yolo11_det.cpp",
+  "file": "D:\\Work\\ncnn-android-yolo11-master\\app\\src\\main\\jni\\yolo11_det.cpp",
+  "output": "CMakeFiles\\yolo11ncnn.dir\\yolo11_det.cpp.o"
+},
+{
+  "directory": "D:/Work/ncnn-android-yolo11-master/app/.cxx/Debug/373z3511/x86",
+  "command": "D:\\APP\\AndroidSDK\\ndk\\27.0.12077973\\toolchains\\llvm\\prebuilt\\windows-x86_64\\bin\\clang++.exe --target=i686-none-linux-android24 --sysroot=D:/APP/AndroidSDK/ndk/27.0.12077973/toolchains/llvm/prebuilt/windows-x86_64/sysroot -Dyolo11ncnn_EXPORTS -isystem D:/Work/ncnn-android-yolo11-master/app/src/main/jni/ncnn-20250503-android-vulkan/x86/include/ncnn -isystem D:/Work/ncnn-android-yolo11-master/app/src/main/jni/opencv-mobile-4.11.0-android/sdk/native/jni/include -g -DANDROID -fdata-sections -ffunction-sections -funwind-tables -fstack-protector-strong -no-canonical-prefixes -D__BIONIC_NO_PAGE_SIZE_MACRO -D_FORTIFY_SOURCE=2 -Wformat -Werror=format-security   -fno-limit-debug-info  -fPIC -fno-rtti -fno-exceptions -pthread -o CMakeFiles\\yolo11ncnn.dir\\ndkcamera.cpp.o -c D:\\Work\\ncnn-android-yolo11-master\\app\\src\\main\\jni\\ndkcamera.cpp",
+  "file": "D:\\Work\\ncnn-android-yolo11-master\\app\\src\\main\\jni\\ndkcamera.cpp",
+  "output": "CMakeFiles\\yolo11ncnn.dir\\ndkcamera.cpp.o"
+}
+]

@@ -1,0 +1,39 @@
+{
+  "buildFiles": [
+    "D:\\Work\\ncnn-android-yolo11-master\\app\\src\\main\\jni\\CMakeLists.txt",
+    "D:\\Work\\ncnn-android-yolo11-master\\app\\src\\main\\jni\\ncnn-20250503-android-vulkan\\x86\\lib\\cmake\\glslang\\glslang-config-version.cmake",
+    "D:\\Work\\ncnn-android-yolo11-master\\app\\src\\main\\jni\\ncnn-20250503-android-vulkan\\x86\\lib\\cmake\\glslang\\glslang-config.cmake",
+    "D:\\Work\\ncnn-android-yolo11-master\\app\\src\\main\\jni\\ncnn-20250503-android-vulkan\\x86\\lib\\cmake\\glslang\\glslang-targets-release.cmake",
+    "D:\\Work\\ncnn-android-yolo11-master\\app\\src\\main\\jni\\ncnn-20250503-android-vulkan\\x86\\lib\\cmake\\glslang\\glslang-targets.cmake",
+    "D:\\Work\\ncnn-android-yolo11-master\\app\\src\\main\\jni\\ncnn-20250503-android-vulkan\\x86\\lib\\cmake\\ncnn\\ncnn-release.cmake",
+    "D:\\Work\\ncnn-android-yolo11-master\\app\\src\\main\\jni\\ncnn-20250503-android-vulkan\\x86\\lib\\cmake\\ncnn\\ncnn.cmake",
+    "D:\\Work\\ncnn-android-yolo11-master\\app\\src\\main\\jni\\ncnn-20250503-android-vulkan\\x86\\lib\\cmake\\ncnn\\ncnnConfig.cmake",
+    "D:\\Work\\ncnn-android-yolo11-master\\app\\src\\main\\jni\\opencv-mobile-4.11.0-android\\sdk\\native\\jni\\abi-x86\\OpenCVConfig.cmake",
+    "D:\\Work\\ncnn-android-yolo11-master\\app\\src\\main\\jni\\opencv-mobile-4.11.0-android\\sdk\\native\\jni\\abi-x86\\OpenCVModules-release.cmake",
+    "D:\\Work\\ncnn-android-yolo11-master\\app\\src\\main\\jni\\opencv-mobile-4.11.0-android\\sdk\\native\\jni\\abi-x86\\OpenCVModules.cmake",
+    "D:\\Work\\ncnn-android-yolo11-master\\app\\src\\main\\jni\\opencv-mobile-4.11.0-android\\sdk\\native\\jni\\OpenCVConfig-version.cmake",
+    "D:\\Work\\ncnn-android-yolo11-master\\app\\src\\main\\jni\\opencv-mobile-4.11.0-android\\sdk\\native\\jni\\OpenCVConfig.cmake"
+  ],
+  "cleanCommandsComponents": [
+    [
+      "D:\\APP\\AndroidSDK\\cmake\\3.31.5\\bin\\ninja.exe",
+      "-C",
+      "D:\\Work\\ncnn-android-yolo11-master\\app\\.cxx\\Debug\\373z3511\\x86",
+      "clean"
+    ]
+  ],
+  "buildTargetsCommandComponents": [
+    "D:\\APP\\AndroidSDK\\cmake\\3.31.5\\bin\\ninja.exe",
+    "-C",
+    "D:\\Work\\ncnn-android-yolo11-master\\app\\.cxx\\Debug\\373z3511\\x86",
+    "{LIST_OF_TARGETS_TO_BUILD}"
+  ],
+  "libraries": {
+    "yolo11ncnn::@6890427a1f51a3e7e1df": {
+      "artifactName": "yolo11ncnn",
+      "abi": "x86",
+      "output": "D:\\Work\\ncnn-android-yolo11-master\\app\\build\\intermediates\\cxx\\Debug\\373z3511\\obj\\x86\\libyolo11ncnn.so",
+      "runtimeFiles": []
+    }
+  }
+}

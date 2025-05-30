@@ -1,0 +1,13 @@
+D:\Work\ncnn-android-yolo11-master\app\src\main\jni\CMakeLists.txt
+D:\Work\ncnn-android-yolo11-master\app\src\main\jni\ncnn-20250503-android-vulkan\x86_64\lib\cmake\glslang\glslang-config-version.cmake
+D:\Work\ncnn-android-yolo11-master\app\src\main\jni\ncnn-20250503-android-vulkan\x86_64\lib\cmake\glslang\glslang-config.cmake
+D:\Work\ncnn-android-yolo11-master\app\src\main\jni\ncnn-20250503-android-vulkan\x86_64\lib\cmake\glslang\glslang-targets-release.cmake
+D:\Work\ncnn-android-yolo11-master\app\src\main\jni\ncnn-20250503-android-vulkan\x86_64\lib\cmake\glslang\glslang-targets.cmake
+D:\Work\ncnn-android-yolo11-master\app\src\main\jni\ncnn-20250503-android-vulkan\x86_64\lib\cmake\ncnn\ncnn-release.cmake
+D:\Work\ncnn-android-yolo11-master\app\src\main\jni\ncnn-20250503-android-vulkan\x86_64\lib\cmake\ncnn\ncnn.cmake
+D:\Work\ncnn-android-yolo11-master\app\src\main\jni\ncnn-20250503-android-vulkan\x86_64\lib\cmake\ncnn\ncnnConfig.cmake
+D:\Work\ncnn-android-yolo11-master\app\src\main\jni\opencv-mobile-4.11.0-android\sdk\native\jni\abi-x86_64\OpenCVConfig.cmake
+D:\Work\ncnn-android-yolo11-master\app\src\main\jni\opencv-mobile-4.11.0-android\sdk\native\jni\abi-x86_64\OpenCVModules-release.cmake
+D:\Work\ncnn-android-yolo11-master\app\src\main\jni\opencv-mobile-4.11.0-android\sdk\native\jni\abi-x86_64\OpenCVModules.cmake
+D:\Work\ncnn-android-yolo11-master\app\src\main\jni\opencv-mobile-4.11.0-android\sdk\native\jni\OpenCVConfig-version.cmake
+D:\Work\ncnn-android-yolo11-master\app\src\main\jni\opencv-mobile-4.11.0-android\sdk\native\jni\OpenCVConfig.cmake
