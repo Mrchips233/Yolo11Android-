@@ -1,0 +1,7 @@
+# Copy this file to local.properties (which is ignored by Git).
+# Replace this path with your own Android SDK directory.
+sdk.dir=C:/Users/YOUR_USER/AppData/Local/Android/Sdk
+
+# Register com.Chips.yolo11ncnn and your signing certificate SHA-1 in AMap.
+# Leave credentials out of commits.
+AMAP_API_KEY=YOUR_AMAP_ANDROID_KEY
