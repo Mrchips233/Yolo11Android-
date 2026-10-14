@@ -1,0 +1,29 @@
+# Android / Gradle generated files
+.gradle/
+.kotlin/
+build/
+.cxx/
+.externalNativeBuild/
+captures/
+*.apk
+*.aab
+*.ap_
+*.hprof
+
+# Local SDK paths, credentials and signing material
+local.properties
+secrets.properties
+keystore.properties
+*.jks
+*.keystore
+
+# IDE and operating system files
+.idea/
+*.iml
+.vscode/
+.DS_Store
+Thumbs.db
+*.log
+
+# Project release output; native SDKs and model assets remain tracked
+/app/release/

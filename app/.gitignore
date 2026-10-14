@@ -1,3 +1,5 @@
 *.apk
-/app/build/
+/build/
+/.cxx/
+/.externalNativeBuild/
 /release/
