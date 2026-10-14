@@ -42,7 +42,7 @@
         android:icon="@mipmap/iconback"
         android:label="@string/app_name">
         <meta-data android:name="com.amap.api.v2.apikey"
-            android:value="d0b272c6a3d9f05820653a95da4a3417">
+            android:value="${AMAP_API_KEY}">
         </meta-data>
         <activity android:name=".MainActivity"
             android:exported="true"
