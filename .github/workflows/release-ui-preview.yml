@@ -28,6 +28,8 @@ jobs:
           java-version: '17'
           cache: gradle
       - uses: android-actions/setup-android@v3
+        with:
+          packages: 'platform-tools'
       - name: Install fixed Android tools
         run: sdkmanager 'platforms;android-35' 'build-tools;35.0.0' 'ndk;27.0.12077973' 'cmake;3.31.5'
       - name: Build all four ABIs
