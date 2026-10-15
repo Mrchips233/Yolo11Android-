@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="app_name">yolo11ncnn</string>
+    <string name="app_name">YOLO 视觉</string>
     <string-array name="model_array">
         <item>s-640</item>
         <item>m-640</item>
@@ -12,13 +12,13 @@
         <item>GPU</item>
         <item>turnip</item>
     </string-array>
-    <string name="Accuracy">GPS 精度:</string>
+    <string name="Accuracy">等待定位信息\n获取位置后将在这里显示经纬度与精度</string>
     <string name="Switch">切换摄像头</string>
-    <string name="YOLO">YOLO</string>
-    <string name="Camera">Camera</string>
-    <string name="Video_Capture_Start">Video_Capture_Start</string>
-    <string name="Video_Capture_Stop">Video_Capture_Stop</string>
-    <string name="Camera_switch">Camera_Switch</string>
+    <string name="YOLO">开始检测</string>
+    <string name="Camera">打开录像</string>
+    <string name="Video_Capture_Start">开始录制</string>
+    <string name="Video_Capture_Stop">停止录制</string>
+    <string name="Camera_switch">切换摄像头</string>
     <string name="Frame">Frame Extract</string>
     <string name="VideoSelect">Select Video</string>
     <string name="VideoPath">Your Video Path</string>
@@ -27,4 +27,37 @@
     <string name="GPSStart">GPSStart</string>
     <string name="GPSStop">GPSStop</string>
     <string name="Status">GPSStatus</string>
+    <string name="brand_name">YOLO VISION</string>
+    <string name="brand_caption">随身视觉工作台</string>
+    <string name="home_eyebrow">观察 · 记录 · 发现</string>
+    <string name="home_title">让每一帧\n都有迹可循。</string>
+    <string name="home_description">识别眼前的目标，记录沿途的现场。\n从实时画面到位置数据，一站完成采集。</string>
+    <string name="home_modes">选择采集方式</string>
+    <string name="detect_title">实时检测</string>
+    <string name="detect_description">打开相机识别目标，查看检测结果，\n同步记录位置与识别数据。</string>
+    <string name="record_title">视频采集</string>
+    <string name="record_description">录制现场视频与 GPS 轨迹，\n结束后自动抽帧并匹配位置。</string>
+    <string name="home_footer">从现场出发，让数据留下线索。</string>
+    <string name="model_badge">YOLO11</string>
+    <string name="gps_badge">GPS</string>
+    <string name="back">返回首页</string>
+    <string name="detect_subtitle">相机检测与位置记录</string>
+    <string name="record_subtitle">记录画面，同步位置信息</string>
+    <string name="camera_preview">相机画面</string>
+    <string name="detection_settings">检测设置</string>
+    <string name="detection_model">检测模型</string>
+    <string name="inference_backend">推理设备</string>
+    <string name="location_title">位置信息</string>
+    <string name="record_control_label">录制 / 停止</string>
+    <string name="switch_lens">切换镜头</string>
+    <string name="recording_ready">准备录制</string>
+    <string name="recording_active">正在录制</string>
+    <string name="recording_saving">正在保存</string>
+    <string name="recording_complete">录制完成</string>
+    <string name="recording_failed">录制失败</string>
+    <string name="recording_hint_ready">点击下方红色按钮，开始记录现场</string>
+    <string name="recording_hint_active">视频与位置采集中，点击方形按钮停止</string>
+    <string name="recording_hint_saving">正在结束录制，请稍候</string>
+    <string name="recording_hint_complete">视频已保存，抽帧与位置匹配结果请查看处理提示</string>
+    <string name="recording_hint_failed">本次录制未成功，请重试</string>
 </resources>

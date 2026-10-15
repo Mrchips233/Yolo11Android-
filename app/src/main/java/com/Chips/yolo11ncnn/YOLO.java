@@ -20,6 +20,7 @@ import android.graphics.Bitmap;
 import android.graphics.PixelFormat;
 import android.os.Bundle;
 import android.util.Log;
+import android.view.MotionEvent;
 import android.view.SurfaceHolder;
 import android.view.SurfaceView;
 import android.view.View;
@@ -75,11 +76,17 @@ public class YOLO extends AppCompatActivity implements SurfaceHolder.Callback
         super.onCreate(savedInstanceState);
         viewBinding = YolocameraBinding.inflate(getLayoutInflater());
         setContentView(viewBinding.getRoot());
+        viewBinding.toolbarBack.setOnClickListener(v -> finish());
         MapView mapView = viewBinding.mapYolo;
         mapView.onCreate(savedInstanceState);
         if (aMap == null) {
             aMap = mapView.getMap();
         }
+        aMap.setOnMapTouchListener(event -> {
+            int action = event.getActionMasked();
+            mapView.getParent().requestDisallowInterceptTouchEvent(
+                    action != MotionEvent.ACTION_UP && action != MotionEvent.ACTION_CANCEL);
+        });
         MyLocationStyle myLocationStyle;
         myLocationStyle = new MyLocationStyle();
         myLocationStyle.myLocationType(MyLocationStyle.LOCATION_TYPE_MAP_ROTATE);

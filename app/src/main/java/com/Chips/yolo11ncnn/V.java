@@ -108,6 +108,12 @@ public class V extends AppCompatActivity implements AMapLocationListener {
         if (aMap == null) {
             aMap = mMapView.getMap();
         }
+        aMap.setOnMapTouchListener(event -> {
+            int action = event.getActionMasked();
+            mMapView.getParent().requestDisallowInterceptTouchEvent(
+                    action != android.view.MotionEvent.ACTION_UP
+                            && action != android.view.MotionEvent.ACTION_CANCEL);
+        });
         MyLocationStyle myLocationStyle;
         myLocationStyle = new MyLocationStyle();
         myLocationStyle.myLocationType(MyLocationStyle.LOCATION_TYPE_MAP_ROTATE);
@@ -122,6 +128,7 @@ public class V extends AppCompatActivity implements AMapLocationListener {
         MapsInitializer.updatePrivacyShow(this, true, true);
 
         //View Options
+        viewBinding.toolbarBack.setOnClickListener(v -> finish());
         viewBinding.imageViewStart.setOnClickListener(v -> startRecording());
         viewBinding.imageViewStop.setOnClickListener(v -> stopRecording());
         viewBinding.imageViewStop.setVisibility(View.GONE);
@@ -130,6 +137,15 @@ public class V extends AppCompatActivity implements AMapLocationListener {
 
 
 
+    }
+
+    private void updateRecordingStatus(int statusRes, int hintRes) {
+        viewBinding.recordingStatus.setText(statusRes);
+        boolean useAlertColor = statusRes == R.string.recording_active
+                || statusRes == R.string.recording_failed;
+        viewBinding.recordingStatus.setTextColor(ContextCompat.getColor(this,
+                useAlertColor ? R.color.ui_danger : R.color.ui_primary));
+        viewBinding.recordingHint.setText(hintRes);
     }
 
     private void CameraSelector() {
@@ -209,14 +225,19 @@ public class V extends AppCompatActivity implements AMapLocationListener {
     }
 
     private void stopRecording() {
-        if (recording != null) {
-            recording.stop();
-            recording = null;
-            WriteToFile();
+        if (recording == null) {
+            return;
         }
+        updateRecordingStatus(R.string.recording_saving, R.string.recording_hint_saving);
+        viewBinding.imageViewStart.setEnabled(false);
+        viewBinding.imageViewStart.setAlpha(0.4f);
+        viewBinding.imageViewSwitch.setEnabled(false);
         viewBinding.imageViewStart.setVisibility(View.VISIBLE);
         viewBinding.imageViewStop.setVisibility(View.GONE);
-        viewBinding.imageViewSwitch.setVisibility(View.VISIBLE);
+        viewBinding.cameraSwitchControl.setVisibility(View.GONE);
+        recording.stop();
+        recording = null;
+        WriteToFile();
     }
 
 
@@ -258,20 +279,23 @@ public class V extends AppCompatActivity implements AMapLocationListener {
 
         recording = pendingRecording.start(ContextCompat.getMainExecutor(this), RecordEvent -> {
             if (RecordEvent instanceof VideoRecordEvent.Start) {
+                updateRecordingStatus(R.string.recording_active, R.string.recording_hint_active);
                 viewBinding.imageViewStart.setVisibility(View.GONE);
                 viewBinding.imageViewStop.setVisibility(View.VISIBLE);
                 viewBinding.imageViewStart.setEnabled(true);
-                viewBinding.imageViewSwitch.setVisibility(View.GONE);
+                viewBinding.cameraSwitchControl.setVisibility(View.GONE);
                 videoStartTimeMillis = System.currentTimeMillis();
                 Log.d(TAG, "录制开始");
             } else if (RecordEvent instanceof VideoRecordEvent.Finalize) {
                 Log.d(TAG, "录制结束");
                 VideoRecordEvent.Finalize finalizeEvent = (VideoRecordEvent.Finalize) RecordEvent;
                 if (!finalizeEvent.hasError()) {
+                    updateRecordingStatus(R.string.recording_complete, R.string.recording_hint_complete);
                     String msg = "完成" + finalizeEvent.getOutputResults().getOutputUri();
                     Toast.makeText(getApplicationContext(), msg, Toast.LENGTH_SHORT).show();
                     Log.d(TAG, msg);
                 } else {
+                    updateRecordingStatus(R.string.recording_failed, R.string.recording_hint_failed);
                     recording.close();
                     recording = null;
                     Log.e(TAG, "视频录制出错：" + finalizeEvent.getError());
@@ -279,7 +303,9 @@ public class V extends AppCompatActivity implements AMapLocationListener {
                 viewBinding.imageViewStart.setVisibility(View.VISIBLE);
                 viewBinding.imageViewStop.setVisibility(View.GONE);
                 viewBinding.imageViewStart.setEnabled(true);
-                viewBinding.imageViewSwitch.setVisibility(View.VISIBLE);
+                viewBinding.imageViewStart.setAlpha(1f);
+                viewBinding.imageViewSwitch.setEnabled(true);
+                viewBinding.cameraSwitchControl.setVisibility(View.VISIBLE);
                 if (!finalizeEvent.hasError()) {
                     Uri outputUri = finalizeEvent.getOutputResults().getOutputUri();
                     Log.d(TAG, "录制完成，Uri: " + outputUri);

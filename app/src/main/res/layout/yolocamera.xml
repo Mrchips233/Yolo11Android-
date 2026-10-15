@@ -1,74 +1,246 @@
 <?xml version="1.0" encoding="utf-8"?>
-<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
-              android:orientation="vertical"
-              android:layout_width="fill_parent"
-                android:background="@color/Background"
-              android:layout_height="fill_parent">
-
-    <SurfaceView
-        android:id="@+id/cameraview"
-        android:layout_width="match_parent"
-        android:layout_height="497dp"
-        android:layout_gravity="end" />
+<ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@color/ui_background"
+    android:clipToPadding="false"
+    android:fillViewport="true"
+    android:scrollbars="none">
 
     <LinearLayout
         android:layout_width="match_parent"
-        android:layout_height="254dp"
-        android:gravity="center_vertical"
-        android:orientation="horizontal"
-        android:padding="8dp">
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:paddingStart="20dp"
+        android:paddingTop="16dp"
+        android:paddingEnd="20dp"
+        android:paddingBottom="28dp">
 
         <LinearLayout
-            android:layout_width="194dp"
-            android:layout_height="240dp"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:gravity="center_vertical"
+            android:orientation="horizontal">
+
+            <ImageButton
+                android:id="@+id/toolbarBack"
+                android:layout_width="48dp"
+                android:layout_height="48dp"
+                android:layout_marginEnd="14dp"
+                android:background="@drawable/bg_icon_button"
+                android:contentDescription="@string/back"
+                android:padding="13dp"
+                android:src="@drawable/ic_back"
+                android:tint="@color/ui_text" />
+
+            <LinearLayout
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:orientation="vertical">
+
+                <TextView
+                    style="@style/Ui.Title"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:text="@string/detect_title" />
+
+                <TextView
+                    style="@style/Ui.Caption"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="4dp"
+                    android:text="@string/detect_subtitle" />
+            </LinearLayout>
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="8dp"
+                android:background="@drawable/bg_chip"
+                android:fontFamily="sans-serif-medium"
+                android:paddingStart="10dp"
+                android:paddingTop="6dp"
+                android:paddingEnd="10dp"
+                android:paddingBottom="6dp"
+                android:text="@string/model_badge"
+                android:textColor="@color/ui_primary"
+                android:textSize="11sp" />
+        </LinearLayout>
+
+        <TextView
+            style="@style/Ui.SectionTitle"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="28dp"
+            android:layout_marginBottom="12dp"
+            android:text="@string/camera_preview" />
+
+        <androidx.constraintlayout.widget.ConstraintLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:background="@drawable/bg_preview"
+            android:clipToOutline="true">
+
+            <SurfaceView
+                android:id="@+id/cameraview"
+                android:layout_width="0dp"
+                android:layout_height="0dp"
+                android:keepScreenOn="true"
+                app:layout_constraintBottom_toBottomOf="parent"
+                app:layout_constraintDimensionRatio="H,4:3"
+                app:layout_constraintEnd_toEndOf="parent"
+                app:layout_constraintStart_toStartOf="parent"
+                app:layout_constraintTop_toTopOf="parent" />
+        </androidx.constraintlayout.widget.ConstraintLayout>
+
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/buttonSwitchCamera"
+            style="@style/Ui.SecondaryButton"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="12dp"
+            android:minHeight="52dp"
+            android:text="@string/Switch"
+            android:textAllCaps="false"
+            app:icon="@drawable/ic_switch_camera"
+            app:iconGravity="textStart"
+            app:iconPadding="10dp"
+            app:iconSize="20dp"
+            app:iconTint="@color/ui_primary" />
+
+        <TextView
+            style="@style/Ui.SectionTitle"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="24dp"
+            android:layout_marginBottom="12dp"
+            android:text="@string/detection_settings" />
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:baselineAligned="false"
+            android:orientation="horizontal">
+
+            <LinearLayout
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_marginEnd="6dp"
+                android:layout_weight="1"
+                android:background="@drawable/bg_panel"
+                android:orientation="vertical"
+                android:padding="12dp">
+
+                <TextView
+                    style="@style/Ui.Caption"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginBottom="10dp"
+                    android:labelFor="@id/spinnerModel"
+                    android:text="@string/detection_model" />
+
+                <Spinner
+                    android:id="@+id/spinnerModel"
+                    android:layout_width="match_parent"
+                    android:layout_height="52dp"
+                    android:background="@drawable/bg_input"
+                    android:drawSelectorOnTop="true"
+                    android:dropDownVerticalOffset="4dp"
+                    android:entries="@array/model_array"
+                    android:minHeight="48dp"
+                    android:paddingStart="10dp"
+                    android:paddingEnd="24dp"
+                    android:popupBackground="@color/ui_surface_raised"
+                    android:spinnerMode="dropdown" />
+            </LinearLayout>
+
+            <LinearLayout
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="6dp"
+                android:layout_weight="1"
+                android:background="@drawable/bg_panel"
+                android:orientation="vertical"
+                android:padding="12dp">
+
+                <TextView
+                    style="@style/Ui.Caption"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginBottom="10dp"
+                    android:labelFor="@id/spinnerCPUGPU"
+                    android:text="@string/inference_backend" />
+
+                <Spinner
+                    android:id="@+id/spinnerCPUGPU"
+                    android:layout_width="match_parent"
+                    android:layout_height="52dp"
+                    android:background="@drawable/bg_input"
+                    android:drawSelectorOnTop="true"
+                    android:dropDownVerticalOffset="4dp"
+                    android:entries="@array/cpugpu_array"
+                    android:minHeight="48dp"
+                    android:paddingStart="10dp"
+                    android:paddingEnd="24dp"
+                    android:popupBackground="@color/ui_surface_raised"
+                    android:spinnerMode="dropdown" />
+            </LinearLayout>
+        </LinearLayout>
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="24dp"
+            android:layout_marginBottom="12dp"
+            android:gravity="center_vertical"
+            android:orientation="horizontal">
+
+            <ImageView
+                android:layout_width="20dp"
+                android:layout_height="20dp"
+                android:layout_marginEnd="8dp"
+                android:importantForAccessibility="no"
+                android:src="@drawable/ic_location"
+                android:tint="@color/ui_primary" />
+
+            <TextView
+                style="@style/Ui.SectionTitle"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="@string/location_title" />
+        </LinearLayout>
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:background="@drawable/bg_panel"
+            android:clipToOutline="true"
             android:orientation="vertical">
 
             <com.amap.api.maps.MapView
                 android:id="@+id/mapYolo"
                 android:layout_width="match_parent"
-                android:layout_height="161dp"
-                android:layout_gravity="top" />
+                android:layout_height="188dp" />
+
+            <View
+                android:layout_width="match_parent"
+                android:layout_height="1dp"
+                android:background="@color/ui_border" />
 
             <TextView
                 android:id="@+id/accuracyYolo"
+                style="@style/Ui.Body"
                 android:layout_width="match_parent"
-                android:layout_height="73dp"
-                android:text="@string/Accuracy" />
-
-        </LinearLayout>
-
-        <View
-            android:layout_width="28dp"
-            android:layout_height="36dp"
-            android:layout_weight="1" />
-
-        <LinearLayout
-            android:layout_width="wrap_content"
-            android:layout_height="234dp"
-            android:layout_gravity="end"
-            android:layout_marginStart="16dp"
-            android:orientation="vertical">
-
-            <Button
-                android:id="@+id/buttonSwitchCamera"
-                android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:layout_gravity="end"
-                android:text="@string/Switch" />
-
-            <Spinner
-                android:id="@+id/spinnerModel"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:drawSelectorOnTop="true"
-                android:entries="@array/model_array" />
-
-            <Spinner
-                android:id="@+id/spinnerCPUGPU"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:drawSelectorOnTop="true"
-                android:entries="@array/cpugpu_array" />
+                android:fontFamily="sans-serif"
+                android:lineSpacingExtra="5dp"
+                android:minLines="5"
+                android:padding="16dp"
+                android:text="@string/Accuracy"
+                android:textColor="@color/ui_text_secondary"
+                android:textIsSelectable="true" />
         </LinearLayout>
     </LinearLayout>
-</LinearLayout>
+</ScrollView>

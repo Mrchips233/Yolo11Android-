@@ -1,14 +1,17 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <color name="purple_200">#FFBB86FC</color>
-    <color name="purple_500">#FF6200EE</color>
-    <color name="purple_700">#FF3700B3</color>
-    <color name="teal_200">#FF03DAC5</color>
-    <color name="teal_700">#FF018786</color>
-    <color name="black">#FF000000</color>
-    <color name="white">#FFFFFFFF</color>
-    <color name="gray_666">#666666</color>
-    <color name="gray_444">#444444</color>
-    <color name="ActionBar">#231917</color>
-    <color name="Background">#FEEDE5</color>
+    <color name="ui_background">#0C1218</color>
+    <color name="ui_surface">#151F29</color>
+    <color name="ui_surface_raised">#1C2A36</color>
+    <color name="ui_border">#2A3B49</color>
+    <color name="ui_primary">#71E4BE</color>
+    <color name="ui_primary_muted">#193B36</color>
+    <color name="ui_on_primary">#10251F</color>
+    <color name="ui_text">#F0F5F7</color>
+    <color name="ui_text_secondary">#9BADBB</color>
+    <color name="ui_danger">#FF6B7A</color>
+    <color name="ui_preview">#070B0F</color>
+    <color name="ui_ripple">#2671E4BE</color>
+    <color name="white">#FFFFFF</color>
+    <color name="black">#000000</color>
 </resources>
