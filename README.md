@@ -97,6 +97,10 @@ Release 构建使用 `:app:assembleRelease`，分发前需自行配置发布签�
 
 仓库提供 [GitHub Actions 构建模板](docs/android-ci.example.yml)。使用有工作流发布权限的账号或 Token 将其复制到 `.github/workflows/android.yml` 后，会在 `master` 推送和 Pull Request 时用 JDK 17 及上述工具版本编译 Debug APK。模板目前尚未启用；构建检查也不能代替相机、GPU、定位和录制的真机验证。
 
+### 手动发布 UI 预览版
+
+`.github/workflows/release-ui-preview.yml` 提供手动发布入口。在 GitHub Actions 页面运行该流程，会构建四种 ABI 的 Debug APK，生成 SHA-256 校验文件，并发布附带静态界面预览图的 `v1.1.0-ui-preview.1` 预发布版本。发布说明会注明调试包、高德 Key 配置和设备验证状态；同名已发布版本不会被覆盖。
+
 ## 输出文件
 
 - 视频：Android 10 及以上写入共享媒体库的 `Movies/CameraX-video`。

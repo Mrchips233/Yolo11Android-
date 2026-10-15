@@ -1,0 +1,98 @@
+name: Release UI preview
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: release-ui-preview-v1.1.0-ui-preview.1
+  cancel-in-progress: false
+
+env:
+  TAG: v1.1.0-ui-preview.1
+  APK_NAME: Yolo11Android-v1.1.0-ui-preview.1-debug.apk
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+          cache: gradle
+      - uses: android-actions/setup-android@v3
+      - name: Install fixed Android tools
+        run: sdkmanager 'platforms;android-35' 'build-tools;35.0.0' 'ndk;27.0.12077973' 'cmake;3.31.5'
+      - name: Build all four ABIs
+        run: ./gradlew --no-daemon :app:assembleDebug --max-workers=4
+      - name: Prepare and verify assets
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir release-assets
+          cp app/build/outputs/apk/debug/com.Chips.yolo11ncnn-debug.apk "release-assets/$APK_NAME"
+          cp docs/ui-preview.png release-assets/ui-preview.png
+          "$ANDROID_HOME/build-tools/35.0.0/apksigner" verify --verbose "release-assets/$APK_NAME"
+          python3 - <<'PY'
+          import os, zipfile
+          from pathlib import Path
+          apk = Path('release-assets') / os.environ['APK_NAME']
+          with zipfile.ZipFile(apk) as archive:
+              assert archive.testzip() is None, 'APK ZIP integrity check failed'
+              for abi in ('arm64-v8a', 'armeabi-v7a', 'x86', 'x86_64'):
+                  assert f'lib/{abi}/libyolo11ncnn.so' in archive.namelist(), f'Missing ABI: {abi}'
+          PY
+          cd release-assets
+          sha256sum "$APK_NAME" ui-preview.png > SHA256SUMS.txt
+          sha256sum --check SHA256SUMS.txt
+      - name: Upload draft and publish prerelease
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+        run: |
+          set -euo pipefail
+          tag_commit=$(git ls-remote origin "refs/tags/$TAG" "refs/tags/$TAG^{}" | awk '{if ($2 ~ /\^\{\}$/) peeled=$1; else direct=$1} END {print peeled ? peeled : direct}')
+          if [[ -n "$tag_commit" && "$tag_commit" != "$GITHUB_SHA" ]]; then
+            echo "Refusing to replace tag $TAG: target is $tag_commit, expected $GITHUB_SHA."
+            exit 1
+          fi
+          release_id=$(gh api --paginate "repos/$GH_REPO/releases?per_page=100" --jq ".[] | select(.tag_name == \"$TAG\") | .id")
+          if [[ -n "$release_id" ]]; then
+            published_release=$(gh api "repos/$GH_REPO/releases/$release_id" --jq '.draft == false')
+            if [[ "$published_release" == true ]]; then
+              echo 'Refusing to overwrite a published release.'
+              exit 1
+            fi
+            release_target=$(gh api "repos/$GH_REPO/releases/$release_id" --jq '.target_commitish')
+            if [[ -z "$tag_commit" && "$release_target" != "$GITHUB_SHA" ]]; then
+              echo 'Refusing to reuse a draft with a different target commit.'
+              exit 1
+            fi
+            gh release edit "$TAG" --draft=true --prerelease --target "$GITHUB_SHA" --notes-file "docs/releases/$TAG.md"
+          else
+            gh release create "$TAG" --draft --prerelease --target "$GITHUB_SHA" --title 'YOLO 视觉 v1.1.0-ui-preview.1' --notes-file "docs/releases/$TAG.md"
+          fi
+          gh release upload "$TAG" "release-assets/$APK_NAME" release-assets/ui-preview.png release-assets/SHA256SUMS.txt --clobber
+          release_id=$(gh api --paginate "repos/$GH_REPO/releases?per_page=100" --jq ".[] | select(.tag_name == \"$TAG\") | .id")
+          gh api "repos/$GH_REPO/releases/$release_id/assets?per_page=100" > "$RUNNER_TEMP/ui-release-assets.json"
+          python3 - <<'PY'
+          import hashlib, json, os
+          from pathlib import Path
+          assets = json.loads((Path(os.environ['RUNNER_TEMP']) / 'ui-release-assets.json').read_text())
+          remote = {asset['name']: asset for asset in assets}
+          for name in (os.environ['APK_NAME'], 'ui-preview.png', 'SHA256SUMS.txt'):
+              local = Path('release-assets') / name
+              asset = remote[name]
+              assert asset['state'] == 'uploaded' and asset['size'] == local.stat().st_size, name
+              if asset.get('digest'):
+                  assert asset['digest'] == 'sha256:' + hashlib.sha256(local.read_bytes()).hexdigest(), name
+          PY
+          gh release edit "$TAG" --draft=false --prerelease --target "$GITHUB_SHA"
