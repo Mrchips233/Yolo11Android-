@@ -2,18 +2,20 @@
 
 基于自训练 YOLO11 模型与 ncnn 的 Android 目标检测应用，集成相机实时识别、视频录制、GPS 定位记录和 CSV 数据导出。Java 层负责界面、CameraX 录制与定位，C++ / JNI 层负责 ncnn 推理和检测结果绘制。
 
+`beta` 分支用于本轮清理与优化的测试，确认设备运行正常后再合并到 `master`。
+
 ## 功能
 
 | 功能 | 当前实现 |
 | --- | --- |
 | 相机实时检测 | 显示检测框、类别、置信度和 FPS，支持切换前后摄像头。 |
-| 自训练模型 | 内置 YOLO11s / YOLO11m 的 ncnn 模型；当前类别标签为 `W`、`P`、`S`、`I`、`A`、`WD`、`PD`、`SD`、`ID`、`AD`。 |
+| 自训练模型 | 内置 YOLO11s / YOLO11m，支持 640 / 320 输入；当前类别标签为 `W`、`P`、`S`、`I`、`A`、`WD`、`PD`、`SD`、`ID`、`AD`。 |
 | 推理后端 | 提供 CPU、Vulkan GPU 和 Turnip 选项；GPU / Turnip 需要设备和驱动支持，建议先用 CPU 验证。 |
 | 定位与地图 | 通过高德 SDK 显示地图、经纬度和定位精度，并记录带时间的 GPS 数据。 |
-| 视频录制与抽帧 | 使用 CameraX 录制视频，按权限情况启用音频；录制完成后通过 OpenCV 导出 JPEG 帧。 |
-| 数据导出 | 实时检测结果写入 CSV；录制视频的帧与 GPS 记录匹配后生成 CSV，便于后续分析。 |
+| 视频录制与抽帧 | 使用 CameraX 录制视频，按权限情况启用音频；后台通过 MediaCodec 解码并读取逐帧 PTS，使用 OpenCV 导出 JPEG。 |
+| 数据导出 | 实时检测结果写入 CSV；视频帧按实际解码时间匹配 GPS，超过 2 秒无有效定位时标记“未匹配”。 |
 
-这是开发中的项目。界面提供 640 / 320 模型选项，但当前 JNI 输入尺寸固定为 320；模型切换、录制错误处理和帧时间匹配仍有已知问题，详见 [维护与整改清单](docs/maintenance.md)。当前仓库不包含训练脚本、数据集和端侧性能基准。
+这是开发中的项目。模型配置、录制会话隔离、资源释放和帧时间匹配已完成一轮修复与自动检查；相机、厂商解码器、GPU / Turnip 和定位效果仍需真机验证，详见 [维护与验证清单](docs/maintenance.md)。当前仓库不包含训练脚本、数据集和端侧性能基准。
 
 ## 构建环境
 
@@ -73,7 +75,7 @@ app/src/main/jniLibs/arm64-v8a/
   libvulkan_freedreno.so
 ```
 
-Java 抽帧使用 Maven Central 的 `org.opencv:opencv:4.11.0`，JNI 推理使用仓库内的 opencv-mobile；两者用途不同。Turnip 库仅提供 `arm64-v8a` 版本，其可用性还取决于 GPU 型号。
+Java 抽帧使用 Android MediaCodec 解码，再通过 Maven Central 的 `org.opencv:opencv:4.11.0` 转换、旋转和保存图像；JNI 推理使用仓库内的 opencv-mobile。两份 OpenCV 均有实际调用。Turnip 库仅提供 `arm64-v8a` 版本，其可用性还取决于 GPU 型号。
 
 ### 4. 编译与安装
 
@@ -101,11 +103,25 @@ Release 构建使用 `:app:assembleRelease`，分发前需自行配置发布签�
 
 `.github/workflows/release-ui-preview.yml` 提供手动发布入口。在 GitHub Actions 页面运行该流程，会构建四种 ABI 的 Debug APK，生成 SHA-256 校验文件，并发布附带静态界面预览图的 `v1.1.0-ui-preview.1` 预发布版本。发布说明会注明调试包、高德 Key 配置和设备验证状态；同名已发布版本不会被覆盖。
 
+## 检查与回归
+
+```bash
+./gradlew :app:testDebugUnitTest :app:lintDebug :app:assembleDebug
+python3 tests/run_native_checks.py
+git diff --check
+```
+
+Java 单测覆盖 GPS 时间解析、跨午夜、时区、匹配距离上限、二分查找及 YUV 裁切和步长处理。原生检查需 Linux、Python 3 和 `g++`，直接测试生产 CSV 导出类的并发快照、会话重置、转义和写入失败重试。自动检查的结果及尚待完成的设备场景见 [维护清单](docs/maintenance.md)。
+
 ## 输出文件
 
 - 视频：Android 10 及以上写入共享媒体库的 `Movies/CameraX-video`。
-- 抽帧图片、GPS 文本及 `匹配结果.csv`：应用专属外部目录的 `Pictures/<视频名称>/`。
-- 实时检测 CSV：应用专属外部文件目录下以时间命名的 `results.csv`。
+- 抽帧图片、`GPS_<视频名称>.csv`、`frames.csv` 及 `匹配结果.csv`：应用专属外部目录的 `Pictures/<视频名称>/`。
+- 实时检测 CSV：应用专属外部文件目录下的 `<毫秒时间戳>-results.csv`。
+
+GPS CSV 保存原始定位点的 epoch 毫秒、含日期和时区的时间、经纬度及精度，不再生成模拟 30 Hz 的插值点。`frames.csv` 保存相对首帧的 `pts_us` 和解码器的 `original_pts_us`；帧与 GPS 按最近时间匹配，结果包含时间差和匹配状态。没有有效定位时保留空字段；实时检测导出会跳过无效定位。
+
+视频绝对起点由 CameraX 开始回调及录制时长估算，仍受回调延迟和系统时钟影响，不代表硬件级视频 / GPS 同步。抽帧支持可输出 YUV 图像的解码器；无法可靠获取图像或时间戳时报告错误。离开录制页会取消未完成的抽帧和匹配，已保存的视频保留。
 
 应用专属目录通常位于 `Android/data/com.Chips.yolo11ncnn/files/`；目录可见性受系统版本和文件管理器限制。卸载应用可能移除其中的数据，分析前请导出所需文件。
 
