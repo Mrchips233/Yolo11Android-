@@ -12,6 +12,4 @@
     <color name="ui_danger">#FF6B7A</color>
     <color name="ui_preview">#070B0F</color>
     <color name="ui_ripple">#2671E4BE</color>
-    <color name="white">#FFFFFF</color>
-    <color name="black">#000000</color>
 </resources>

@@ -31,7 +31,7 @@
                 android:contentDescription="@string/back"
                 android:padding="12dp"
                 android:src="@drawable/ic_back"
-                android:tint="@color/ui_text" />
+                app:tint="@color/ui_text" />
 
             <LinearLayout
                 android:layout_width="0dp"
@@ -177,7 +177,7 @@
                     android:focusable="true"
                     android:padding="15dp"
                     android:src="@drawable/ic_switch_camera"
-                    android:tint="@color/ui_primary" />
+                    app:tint="@color/ui_primary" />
 
                 <TextView
                     style="@style/Ui.Caption"
@@ -207,7 +207,7 @@
                     android:layout_height="20dp"
                     android:importantForAccessibility="no"
                     android:src="@drawable/ic_location"
-                    android:tint="@color/ui_primary" />
+                    app:tint="@color/ui_primary" />
 
                 <TextView
                     style="@style/Ui.SectionTitle"
