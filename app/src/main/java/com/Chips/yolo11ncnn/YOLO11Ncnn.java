@@ -17,13 +17,8 @@ package com.Chips.yolo11ncnn;
 import android.content.res.AssetManager;
 import android.view.Surface;
 
-import androidx.appcompat.app.AppCompatActivity;
 
-import java.io.File;
-
-public class YOLO11Ncnn
-{
-
+public final class YOLO11Ncnn {
     public native boolean loadModel(AssetManager mgr, int taskid, int modelid, int cpugpu);
     public native boolean openCamera(int facing);
     public native boolean closeCamera();
@@ -32,9 +27,5 @@ public class YOLO11Ncnn
     static {
         System.loadLibrary("yolo11ncnn");
     }
-
-
-
-
 }
 

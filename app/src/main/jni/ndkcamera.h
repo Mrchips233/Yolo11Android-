@@ -23,6 +23,9 @@
 #include <camera/NdkCameraMetadata.h>
 #include <media/NdkImageReader.h>
 
+#include <mutex>
+#include <vector>
+
 #include <opencv2/core/core.hpp>
 
 class NdkCamera
@@ -33,17 +36,22 @@ public:
 
     // facing 0=front 1=back
     int open(int camera_facing = 0);
-    void close();
+    virtual void close();
 
-    virtual void on_image(const cv::Mat& rgb) const;
+    virtual void on_image(const unsigned char* nv21, int nv21_width, int nv21_height) const = 0;
 
-    virtual void on_image(const unsigned char* nv21, int nv21_width, int nv21_height) const;
-
-public:
+protected:
     int camera_facing;
     int camera_orientation;
 
 private:
+    static void onImageAvailable(void* context, AImageReader* reader);
+    void close_locked();
+
+    std::mutex camera_mutex;
+    std::mutex image_mutex;
+    bool accepting_images;
+    std::vector<unsigned char> nv21_buffer;
     ACameraManager* camera_manager;
     ACameraDevice* camera_device;
     AImageReader* image_reader;
@@ -59,20 +67,21 @@ class NdkCameraWindow : public NdkCamera
 {
 public:
     NdkCameraWindow();
-    virtual ~NdkCameraWindow();
+    ~NdkCameraWindow() override;
 
+    void close() override;
     void set_window(ANativeWindow* win);
 
-    virtual void on_image_render(cv::Mat& rgb) const;
+    virtual void on_image_render(cv::Mat& rgb) const = 0;
 
-    virtual void on_image(const unsigned char* nv21, int nv21_width, int nv21_height) const;
-
-public:
-    mutable int accelerometer_orientation;
+    void on_image(const unsigned char* nv21, int nv21_width, int nv21_height) const override;
 
 private:
+    mutable int accelerometer_orientation;
+    mutable std::mutex window_mutex;
     ASensorManager* sensor_manager;
     mutable ASensorEventQueue* sensor_event_queue;
+    mutable ALooper* sensor_looper;
     const ASensor* accelerometer_sensor;
     ANativeWindow* win;
 };

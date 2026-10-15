@@ -20,7 +20,9 @@
 
 #include <jni.h>
 
-#include <string>
+#include <algorithm>
+#include <cstring>
+#include <memory>
 #include <vector>
 
 #include <platform.h>
@@ -33,23 +35,13 @@
 #include <opencv2/core/core.hpp>
 #include <opencv2/imgproc/imgproc.hpp>
 
-#include <sys/stat.h>
-#include <sys/types.h>
-#include <opencv2/highgui/highgui.hpp>
-
-#if __ARM_NEON
-#include <arm_neon.h>
-#endif // __ARM_NEON
-
-static int draw_unsupported(cv::Mat& rgb)
+static int draw_status(cv::Mat& rgb, const char* text)
 {
-    const char text[] = "unsupported";
-
     int baseLine = 0;
     cv::Size label_size = cv::getTextSize(text, cv::FONT_HERSHEY_SIMPLEX, 1.0, 1, &baseLine);
 
-    int y = (rgb.rows - label_size.height) / 2;
-    int x = (rgb.cols - label_size.width) / 2;
+    int y = std::max(0, (rgb.rows - label_size.height) / 2);
+    int x = std::max(0, (rgb.cols - label_size.width) / 2);
 
     cv::rectangle(rgb, cv::Rect(cv::Point(x, y), cv::Size(label_size.width, label_size.height + baseLine)),
                     cv::Scalar(255, 255, 255), -1);
@@ -75,8 +67,11 @@ static int draw_fps(cv::Mat& rgb)
             return 0;
         }
 
-        float fps = 1000.f / (t1 - t0);
+        const double elapsed = t1 - t0;
         t0 = t1;
+        if (elapsed <= 0.0)
+            return 0;
+        float fps = 1000.f / elapsed;
 
         for (int i = 9; i >= 1; i--)
         {
@@ -103,7 +98,7 @@ static int draw_fps(cv::Mat& rgb)
     cv::Size label_size = cv::getTextSize(text, cv::FONT_HERSHEY_SIMPLEX, 0.5, 1, &baseLine);
 
     int y = 0;
-    int x = rgb.cols - label_size.width;
+    int x = std::max(0, rgb.cols - label_size.width);
 
     cv::rectangle(rgb, cv::Rect(cv::Point(x, y), cv::Size(label_size.width, label_size.height + baseLine)),
                     cv::Scalar(255, 255, 255), -1);
@@ -116,11 +111,32 @@ static int draw_fps(cv::Mat& rgb)
 
 static YOLO11* g_yolo11 = nullptr;
 static ncnn::Mutex lock;
+static int g_modelid = -1;
+static int g_backend = -1;
+#if NCNN_VULKAN
+static bool g_gpu_initialized = false;
+#endif
+
+struct ModelConfig
+{
+    const char* param;
+    const char* weights;
+    int target_size;
+};
+
+// Keep this table in the same order as spinnerModel in strings.xml.
+static const ModelConfig model_configs[] = {
+    {"yolo11s.param", "yolo11s.bin", 640},
+    {"yolo11m.param", "yolo11m.bin", 640},
+    {"yolo11s.param", "yolo11s.bin", 320},
+    {"yolo11m.param", "yolo11m.bin", 320},
+};
 
 class MyNdkCamera : public NdkCameraWindow
 {
 public:
-    virtual void on_image_render(cv::Mat& rgb) const;
+    ~MyNdkCamera() override { close(); }
+    void on_image_render(cv::Mat& rgb) const override;
 };
 
 void MyNdkCamera::on_image_render(cv::Mat& rgb) const
@@ -132,14 +148,15 @@ void MyNdkCamera::on_image_render(cv::Mat& rgb) const
         if (g_yolo11)
         {
             std::vector<Object> objects;
-            g_yolo11->detect(rgb, objects);
-
-            g_yolo11->draw(rgb, objects);
+            if (g_yolo11->detect(rgb, objects) != 0)
+                draw_status(rgb, "inference failed");
+            else if (g_yolo11->draw(rgb, objects) != 0)
+                draw_status(rgb, "CSV write failed");
 
         }
         else
         {
-            draw_unsupported(rgb);
+            draw_status(rgb, "model unavailable");
         }
     }
 
@@ -150,135 +167,137 @@ static MyNdkCamera* g_camera = 0;
 
 extern "C" {
 
-JNIEXPORT jint JNI_OnLoad(JavaVM* vm, void* reserved)
+JNIEXPORT jint JNI_OnLoad(JavaVM*, void*)
 {
     __android_log_print(ANDROID_LOG_DEBUG, "ncnn", "JNI_OnLoad");
 
     g_camera = new MyNdkCamera;
 
-    ncnn::create_gpu_instance();
-
     return JNI_VERSION_1_4;
 }
 
-JNIEXPORT void JNI_OnUnload(JavaVM* vm, void* reserved)
+JNIEXPORT void JNI_OnUnload(JavaVM*, void*)
 {
     __android_log_print(ANDROID_LOG_DEBUG, "ncnn", "JNI_OnUnload");
 
-    {
-        ncnn::MutexLockGuard g(lock);
-
-        delete g_yolo11;
-        g_yolo11 = 0;
-    }
-
-    ncnn::destroy_gpu_instance();
-
+    // Stop image callbacks before releasing the model and its Vulkan device.
     delete g_camera;
-    g_camera = 0;
+    g_camera = nullptr;
+
+    ncnn::MutexLockGuard g(lock);
+    delete g_yolo11;
+    g_yolo11 = nullptr;
+#if NCNN_VULKAN
+    if (g_gpu_initialized)
+        ncnn::destroy_gpu_instance();
+    g_gpu_initialized = false;
+#endif
+    g_modelid = -1;
+    g_backend = -1;
 }
 
 // public native boolean loadModel(AssetManager mgr, int taskid, int modelid, int cpugpu);
-JNIEXPORT jboolean JNICALL Java_com_Chips_yolo11ncnn_YOLO11Ncnn_loadModel(JNIEnv* env, jobject thiz, jobject assetManager, jint taskid, jint modelid, jint cpugpu)
+JNIEXPORT jboolean JNICALL Java_com_Chips_yolo11ncnn_YOLO11Ncnn_loadModel(JNIEnv* env, jobject, jobject assetManager, jint taskid, jint modelid, jint cpugpu)
 {
-    if (taskid < 0 || taskid > 4 || modelid < 0 || modelid > 3 || cpugpu < 0 || cpugpu > 2)
-    {
+    if (taskid != 0 || modelid < 0 || modelid >= 4 || cpugpu < 0 || cpugpu > 2 || !assetManager)
         return JNI_FALSE;
-    }
 
     AAssetManager* mgr = AAssetManager_fromJava(env, assetManager);
+    if (!mgr)
+        return JNI_FALSE;
 
-    __android_log_print(ANDROID_LOG_DEBUG, "ncnn", "loadModel %p", mgr);
-
-
-    const char* modeltypes[4] =
+    ncnn::MutexLockGuard g(lock);
+    const ModelConfig& config = model_configs[modelid];
+    if (g_yolo11 && g_backend == cpugpu && g_modelid >= 0 &&
+        std::strcmp(model_configs[g_modelid].param, config.param) == 0)
     {
-        "s",
-        "m",
-        "s",
-        "m",
-    };
-
-    std::string parampath = std::string("yolo11") + modeltypes[(int)modelid] + ".param";
-    std::string modelpath = std::string("yolo11") + modeltypes[(int)modelid] + ".bin";
-    bool use_gpu = (int)cpugpu == 1;
-    bool use_turnip = (int)cpugpu == 2;
-
-    // reload
-    {
-        ncnn::MutexLockGuard g(lock);
-
-        {
-            static int old_taskid = 0;
-            static int old_modelid = 0;
-            static int old_cpugpu = 0;
-            if (taskid != old_taskid || (modelid % 3) != old_modelid || cpugpu != old_cpugpu)
-            {
-                // taskid or model or cpugpu changed
-                delete g_yolo11;
-                g_yolo11 = 0;
-            }
-            old_taskid = taskid;
-            old_modelid = modelid % 3;
-            old_cpugpu = cpugpu;
-
-            ncnn::destroy_gpu_instance();
-
-            if (use_turnip)
-            {
-                ncnn::create_gpu_instance("libvulkan_freedreno.so");
-            }
-            else if (use_gpu)
-            {
-                ncnn::create_gpu_instance();
-            }
-
-            if (!g_yolo11)
-            {
-                if (taskid == 0) g_yolo11 = new YOLO11_det;
-
-                g_yolo11->load(mgr, parampath.c_str(), modelpath.c_str(), use_gpu || use_turnip);
-            }
-            int target_size = 320;
-            g_yolo11->set_det_target_size(target_size);
-        }
+        // Resolution changes can reuse the same dynamic-shape network weights.
+        g_yolo11->set_det_target_size(config.target_size);
+        g_modelid = modelid;
+        return JNI_TRUE;
     }
 
+    // Net destruction must precede destruction of the Vulkan device it uses.
+    delete g_yolo11;
+    g_yolo11 = nullptr;
+    g_modelid = -1;
+    if (g_backend != cpugpu)
+    {
+#if NCNN_VULKAN
+        if (g_gpu_initialized)
+            ncnn::destroy_gpu_instance();
+        g_gpu_initialized = false;
+        if (cpugpu != 0)
+        {
+            const char* driver = cpugpu == 2 ? "libvulkan_freedreno.so" : nullptr;
+            const int status = ncnn::create_gpu_instance(driver);
+            if (status != 0 || ncnn::get_gpu_count() <= 0)
+            {
+                __android_log_print(ANDROID_LOG_ERROR, "ncnn", "GPU backend %d unavailable (%d)", cpugpu, status);
+                ncnn::destroy_gpu_instance();
+                g_backend = -1;
+                return JNI_FALSE;
+            }
+            g_gpu_initialized = true;
+        }
+#else
+        if (cpugpu != 0)
+        {
+            g_backend = -1;
+            return JNI_FALSE;
+        }
+#endif
+        g_backend = cpugpu;
+    }
+
+    std::unique_ptr<YOLO11> model(new YOLO11_det);
+    const int status = model->load(mgr, config.param, config.weights, cpugpu != 0);
+    if (status != 0)
+    {
+        __android_log_print(ANDROID_LOG_ERROR, "ncnn", "Model load failed: %s, status=%d", config.param, status);
+        return JNI_FALSE;
+    }
+    model->set_det_target_size(config.target_size);
+    g_yolo11 = model.release();
+    g_modelid = modelid;
+    __android_log_print(ANDROID_LOG_INFO, "ncnn", "Loaded %s, target=%d, backend=%d", config.param, config.target_size, cpugpu);
     return JNI_TRUE;
 }
 
 // public native boolean openCamera(int facing);
-JNIEXPORT jboolean JNICALL Java_com_Chips_yolo11ncnn_YOLO11Ncnn_openCamera(JNIEnv* env, jobject thiz, jint facing)
+JNIEXPORT jboolean JNICALL Java_com_Chips_yolo11ncnn_YOLO11Ncnn_openCamera(JNIEnv*, jobject, jint facing)
 {
-    if (facing < 0 || facing > 1)
+    if (!g_camera || facing < 0 || facing > 1)
         return JNI_FALSE;
 
     __android_log_print(ANDROID_LOG_DEBUG, "ncnn", "openCamera %d", facing);
 
-    g_camera->open((int)facing);
-
-    return JNI_TRUE;
+    return g_camera->open((int)facing) == 0 ? JNI_TRUE : JNI_FALSE;
 }
 
 // public native boolean closeCamera();
-JNIEXPORT jboolean JNICALL Java_com_Chips_yolo11ncnn_YOLO11Ncnn_closeCamera(JNIEnv* env, jobject thiz)
+JNIEXPORT jboolean JNICALL Java_com_Chips_yolo11ncnn_YOLO11Ncnn_closeCamera(JNIEnv*, jobject)
 {
     __android_log_print(ANDROID_LOG_DEBUG, "ncnn", "closeCamera");
 
+    if (!g_camera)
+        return JNI_FALSE;
     g_camera->close();
-
     return JNI_TRUE;
 }
 
 // public native boolean setOutputWindow(Surface surface);
-JNIEXPORT jboolean JNICALL Java_com_Chips_yolo11ncnn_YOLO11Ncnn_setOutputWindow(JNIEnv* env, jobject thiz, jobject surface)
+JNIEXPORT jboolean JNICALL Java_com_Chips_yolo11ncnn_YOLO11Ncnn_setOutputWindow(JNIEnv* env, jobject, jobject surface)
 {
-    ANativeWindow* win = ANativeWindow_fromSurface(env, surface);
-
-    __android_log_print(ANDROID_LOG_DEBUG, "ncnn", "setOutputWindow %p", win);
-
+    if (!g_camera)
+        return JNI_FALSE;
+    ANativeWindow* win = surface ? ANativeWindow_fromSurface(env, surface) : nullptr;
+    if (surface && !win)
+        return JNI_FALSE;
     g_camera->set_window(win);
-
+    // set_window retains its own reference; release the JNI conversion reference.
+    if (win)
+        ANativeWindow_release(win);
     return JNI_TRUE;
 }
 

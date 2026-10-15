@@ -12,90 +12,23 @@
 // CONDITIONS OF ANY KIND, either express or implied. See the License for the
 // specific language governing permissions and limitations under the License.
 
-// 1. install
-//      pip3 install -U ultralytics pnnx ncnn
-// 2. export yolo11 torchscript
-//      yolo export model=yolo11n.pt format=torchscript
-// 3. convert torchscript with static shape
-//      pnnx yolo11n.torchscript
-// 4. modify yolo11n_pnnx.py for dynamic shape inference
-//      A. modify reshape to support dynamic image sizes
-//      B. permute tensor before concat and adjust concat axis
-//      C. drop post-process part
-//      before:
-//          v_235 = v_204.view(1, 144, 6400)
-//          v_236 = v_219.view(1, 144, 1600)
-//          v_237 = v_234.view(1, 144, 400)
-//          v_238 = torch.cat((v_235, v_236, v_237), dim=2)
-//          ...
-//      after:
-//          v_235 = v_204.view(1, 144, -1).transpose(1, 2)
-//          v_236 = v_219.view(1, 144, -1).transpose(1, 2)
-//          v_237 = v_234.view(1, 144, -1).transpose(1, 2)
-//          v_238 = torch.cat((v_235, v_236, v_237), dim=1)
-//          return v_238
-//      D. modify area attention for dynamic shape inference
-//      before:
-//          v_95 = self.model_10_m_0_attn_qkv_conv(v_94)
-//          v_96 = v_95.view(1, 2, 128, 400)
-//          v_97, v_98, v_99 = torch.split(tensor=v_96, dim=2, split_size_or_sections=(32,32,64))
-//          v_100 = torch.transpose(input=v_97, dim0=-2, dim1=-1)
-//          v_101 = torch.matmul(input=v_100, other=v_98)
-//          v_102 = (v_101 * 0.176777)
-//          v_103 = F.softmax(input=v_102, dim=-1)
-//          v_104 = torch.transpose(input=v_103, dim0=-2, dim1=-1)
-//          v_105 = torch.matmul(input=v_99, other=v_104)
-//          v_106 = v_105.view(1, 128, 20, 20)
-//          v_107 = v_99.reshape(1, 128, 20, 20)
-//          v_108 = self.model_10_m_0_attn_pe_conv(v_107)
-//          v_109 = (v_106 + v_108)
-//          v_110 = self.model_10_m_0_attn_proj_conv(v_109)
-//      after:
-//          v_95 = self.model_10_m_0_attn_qkv_conv(v_94)
-//          v_96 = v_95.view(1, 2, 128, -1)
-//          v_97, v_98, v_99 = torch.split(tensor=v_96, dim=2, split_size_or_sections=(32,32,64))
-//          v_100 = torch.transpose(input=v_97, dim0=-2, dim1=-1)
-//          v_101 = torch.matmul(input=v_100, other=v_98)
-//          v_102 = (v_101 * 0.176777)
-//          v_103 = F.softmax(input=v_102, dim=-1)
-//          v_104 = torch.transpose(input=v_103, dim0=-2, dim1=-1)
-//          v_105 = torch.matmul(input=v_99, other=v_104)
-//          v_106 = v_105.view(1, 128, v_95.size(2), v_95.size(3))
-//          v_107 = v_99.reshape(1, 128, v_95.size(2), v_95.size(3))
-//          v_108 = self.model_10_m_0_attn_pe_conv(v_107)
-//          v_109 = (v_106 + v_108)
-//          v_110 = self.model_10_m_0_attn_proj_conv(v_109)
-// 5. re-export yolo11 torchscript
-//      python3 -c 'import yolo11n_pnnx; yolo11n_pnnx.export_torchscript()'
-// 6. convert new torchscript with dynamic shape
-//      pnnx yolo11n_pnnx.py.pt inputshape=[1,3,640,640] inputshape2=[1,3,320,320]
-// 7. now you get ncnn model files
-//      mv yolo11n_pnnx.py.ncnn.param yolo11n.ncnn.param
-//      mv yolo11n_pnnx.py.ncnn.bin yolo11n.ncnn.bin
-
-// the out blob would be a 2-dim tensor with w=144 h=8400
-//
-//        | bbox-reg 16 x 4       | per-class scores(80) |
-//        +-----+-----+-----+-----+----------------------+
-//        | dx0 | dy0 | dx1 | dy1 |0.1 0.0 0.0 0.5 ......|
-//   all /|     |     |     |     |           .          |
-//  boxes |  .. |  .. |  .. |  .. |0.0 0.9 0.0 0.0 ......|
-//  (8400)|     |     |     |     |           .          |
-//       \|     |     |     |     |           .          |
-//        +-----+-----+-----+-----+----------------------+
-//
+// The dynamically shaped output has one row per stride-8/16/32 grid cell.
+// Each row contains four 16-bin box distributions and the ten trained classes.
 
 #include "yolo11.h"
+#include "detection_output.h"
 
 #include <opencv2/core/core.hpp>
 #include <opencv2/imgproc/imgproc.hpp>
-#include <opencv2/highgui/highgui.hpp>
-#include <fstream>
+#include <algorithm>
+#include <cfloat>
+#include <cmath>
+#include <memory>
+#include <string>
 #include <android/log.h>
-#include <iomanip>
-#include <sys/stat.h>
+#include <jni.h>
 
-#define LOG_TAG "Test"
+#define LOG_TAG "YOLO11"
 #define LOGD(...) __android_log_print(ANDROID_LOG_DEBUG, LOG_TAG, __VA_ARGS__)
 
 static inline float intersection_area(const Object& a, const Object& b)
@@ -104,52 +37,12 @@ static inline float intersection_area(const Object& a, const Object& b)
     return inter.area();
 }
 
-static void qsort_descent_inplace(std::vector<Object>& objects, int left, int right)
-{
-    int i = left;
-    int j = right;
-    float p = objects[(left + right) / 2].prob;
+static const char* const class_names[] = {
+    "W", "P", "S", "I", "A", "WD", "PD", "SD", "ID", "AD"
+};
+static const int class_count = sizeof(class_names) / sizeof(class_names[0]);
 
-    while (i <= j)
-    {
-        while (objects[i].prob > p)
-            i++;
-
-        while (objects[j].prob < p)
-            j--;
-
-        if (i <= j)
-        {
-            // swap
-            std::swap(objects[i], objects[j]);
-
-            i++;
-            j--;
-        }
-    }
-
-    // #pragma omp parallel sections
-    {
-        // #pragma omp section
-        {
-            if (left < j) qsort_descent_inplace(objects, left, j);
-        }
-        // #pragma omp section
-        {
-            if (i < right) qsort_descent_inplace(objects, i, right);
-        }
-    }
-}
-
-static void qsort_descent_inplace(std::vector<Object>& objects)
-{
-    if (objects.empty())
-        return;
-
-    qsort_descent_inplace(objects, 0, objects.size() - 1);
-}
-
-static void nms_sorted_bboxes(const std::vector<Object>& objects, std::vector<int>& picked, float nms_threshold, bool agnostic = false)
+static void nms_sorted_bboxes(const std::vector<Object>& objects, std::vector<int>& picked, float nms_threshold)
 {
     picked.clear();
 
@@ -170,15 +63,18 @@ static void nms_sorted_bboxes(const std::vector<Object>& objects, std::vector<in
         {
             const Object& b = objects[picked[j]];
 
-            if (!agnostic && a.label != b.label)
+            if (a.label != b.label)
                 continue;
 
             // intersection over union
             float inter_area = intersection_area(a, b);
             float union_area = areas[i] + areas[picked[j]] - inter_area;
             // float IoU = inter_area / union_area
-            if (inter_area / union_area > nms_threshold)
+            if (union_area > 0.f && inter_area / union_area > nms_threshold)
+            {
                 keep = 0;
+                break;
+            }
         }
 
         if (keep)
@@ -191,7 +87,9 @@ static inline float sigmoid(float x)
     return 1.0f / (1.0f + expf(-x));
 }
 
-static void generate_proposals(const ncnn::Mat& pred, int stride, const ncnn::Mat& in_pad, float prob_threshold, std::vector<Object>& objects)
+static int generate_proposals(const ncnn::Mat& pred, int stride, const ncnn::Mat& in_pad,
+                              float prob_threshold, std::vector<Object>& objects,
+                              ncnn::Layer& softmax, const ncnn::Option& opt)
 {
     const int w = in_pad.w;
     const int h = in_pad.h;
@@ -200,7 +98,7 @@ static void generate_proposals(const ncnn::Mat& pred, int stride, const ncnn::Ma
     const int num_grid_y = h / stride;
 
     const int reg_max_1 = 16;
-    const int num_class = pred.w - reg_max_1 * 4; // number of classes. 80 for COCO
+    const int num_class = class_count;
 
     for (int y = 0; y < num_grid_y; y++)
     {
@@ -217,6 +115,8 @@ static void generate_proposals(const ncnn::Mat& pred, int stride, const ncnn::Ma
                 for (int k = 0; k < num_class; k++)
                 {
                     float s = pred_score[k];
+                    if (!std::isfinite(s))
+                        return -1;
                     if (s > score)
                     {
                         label = k;
@@ -231,26 +131,8 @@ static void generate_proposals(const ncnn::Mat& pred, int stride, const ncnn::Ma
             {
                 ncnn::Mat pred_bbox = pred_grid.range(0, reg_max_1 * 4).reshape(reg_max_1, 4);
 
-                {
-                    ncnn::Layer* softmax = ncnn::create_layer("Softmax");
-
-                    ncnn::ParamDict pd;
-                    pd.set(0, 1); // axis
-                    pd.set(1, 1);
-                    softmax->load_param(pd);
-
-                    ncnn::Option opt;
-                    opt.num_threads = 1;
-                    opt.use_packing_layout = false;
-
-                    softmax->create_pipeline(opt);
-
-                    softmax->forward_inplace(pred_bbox, opt);
-
-                    softmax->destroy_pipeline(opt);
-
-                    delete softmax;
-                }
+                if (softmax.forward_inplace(pred_bbox, opt) != 0)
+                    return -1;
 
                 float pred_ltrb[4];
                 for (int k = 0; k < 4; k++)
@@ -262,6 +144,8 @@ static void generate_proposals(const ncnn::Mat& pred, int stride, const ncnn::Ma
                         dis += l * dis_after_sm[l];
                     }
 
+                    if (!std::isfinite(dis))
+                        return -1;
                     pred_ltrb[k] = dis * stride;
                 }
 
@@ -285,40 +169,23 @@ static void generate_proposals(const ncnn::Mat& pred, int stride, const ncnn::Ma
             }
         }
     }
+    return 0;
 }
 
-static void generate_proposals(const ncnn::Mat& pred, const std::vector<int>& strides, const ncnn::Mat& in_pad, float prob_threshold, std::vector<Object>& objects)
-{
-    const int w = in_pad.w;
-    const int h = in_pad.h;
 
-    int pred_row_offset = 0;
-    for (size_t i = 0; i < strides.size(); i++)
-    {
-        const int stride = strides[i];
-
-        const int num_grid_x = w / stride;
-        const int num_grid_y = h / stride;
-        const int num_grid = num_grid_x * num_grid_y;
-
-        generate_proposals(pred.row_range(pred_row_offset, num_grid), stride, in_pad, prob_threshold, objects);
-        pred_row_offset += num_grid;
-    }
-}
 int YOLO11_det::detect(const cv::Mat& rgb, std::vector<Object>& objects)
 {
-    const int target_size = det_target_size;//640;
+    objects.clear();
+    if (rgb.empty() || rgb.type() != CV_8UC3 || !rgb.isContinuous() || det_target_size <= 0)
+        return -1;
+    const int target_size = det_target_size;
     const float prob_threshold = 0.25f;
     const float nms_threshold = 0.45f;
 
     int img_w = rgb.cols;
     int img_h = rgb.rows;
 
-    // ultralytics/cfg/models/v8/yolo11.yaml
-    std::vector<int> strides(3);
-    strides[0] = 8;
-    strides[1] = 16;
-    strides[2] = 32;
+    static const int strides[] = {8, 16, 32};
     const int max_stride = 32;
 
     // letterbox pad to multiple of max_stride
@@ -338,7 +205,12 @@ int YOLO11_det::detect(const cv::Mat& rgb, std::vector<Object>& objects)
         w = w * scale;
     }
 
+    w = std::max(w, 1);
+    h = std::max(h, 1);
     ncnn::Mat in = ncnn::Mat::from_pixels_resize(rgb.data, ncnn::Mat::PIXEL_RGB, img_w, img_h, w, h);
+
+    if (in.empty())
+        return -1;
 
     // letterbox pad to target_size rectangle
     int wpad = (w + max_stride - 1) / max_stride * max_stride - w;
@@ -346,21 +218,68 @@ int YOLO11_det::detect(const cv::Mat& rgb, std::vector<Object>& objects)
     ncnn::Mat in_pad;
     ncnn::copy_make_border(in, in_pad, hpad / 2, hpad - hpad / 2, wpad / 2, wpad - wpad / 2, ncnn::BORDER_CONSTANT, 114.f);
 
+    if (in_pad.empty())
+        return -1;
+
     const float norm_vals[3] = {1 / 255.f, 1 / 255.f, 1 / 255.f};
     in_pad.substract_mean_normalize(0, norm_vals);
 
     ncnn::Extractor ex = yolo11.create_extractor();
 
-    ex.input("in0", in_pad);
+    if (ex.input("in0", in_pad) != 0)
+        return -1;
 
     ncnn::Mat out;
-    ex.extract("out0", out);
+    if (ex.extract("out0", out) != 0)
+        return -1;
+    int expected_rows = 0;
+    for (int stride : strides)
+        expected_rows += (in_pad.w / stride) * (in_pad.h / stride);
+    if (out.empty() || out.dims != 2 || out.w != 64 + class_count ||
+        out.h != expected_rows || out.elempack != 1 || out.elemsize != sizeof(float))
+    {
+        LOGD("Invalid output tensor: dims=%d w=%d h=%d, expected w=%d h=%d",
+             out.dims, out.w, out.h, 64 + class_count, expected_rows);
+        return -1;
+    }
+
+    // Reuse one Softmax pipeline per frame, rather than allocating one per box.
+    std::unique_ptr<ncnn::Layer> softmax(ncnn::create_layer("Softmax"));
+    if (!softmax)
+        return -1;
+    ncnn::ParamDict pd;
+    pd.set(0, 1);
+    pd.set(1, 1);
+    ncnn::Option opt;
+    opt.num_threads = 1;
+    opt.use_packing_layout = false;
+    if (softmax->load_param(pd) != 0)
+        return -1;
+    if (softmax->create_pipeline(opt) != 0)
+    {
+        softmax->destroy_pipeline(opt);
+        return -1;
+    }
 
     std::vector<Object> proposals;
-    generate_proposals(out, strides, in_pad, prob_threshold, proposals);
+    int row_offset = 0;
+    int proposal_status = 0;
+    for (int stride : strides)
+    {
+        const int rows = (in_pad.w / stride) * (in_pad.h / stride);
+        proposal_status = generate_proposals(out.row_range(row_offset, rows), stride,
+                                             in_pad, prob_threshold, proposals, *softmax, opt);
+        if (proposal_status != 0)
+            break;
+        row_offset += rows;
+    }
+    softmax->destroy_pipeline(opt);
+    if (proposal_status != 0)
+        return proposal_status;
 
-    // sort all proposals by score from highest to lowest
-    qsort_descent_inplace(proposals);
+    std::sort(proposals.begin(), proposals.end(), [](const Object& a, const Object& b) {
+        return a.prob > b.prob;
+    });
 
     // apply nms with nms_threshold
     std::vector<int> picked;
@@ -405,49 +324,58 @@ int YOLO11_det::detect(const cv::Mat& rgb, std::vector<Object>& objects)
     return 0;
 }
 
-std::string g_output_path;
-static std::string g_output_time;
-static double g_output_lat = 0.0;
-static double g_output_lng = 0.0;
-extern "C"
-JNIEXPORT void JNICALL
-Java_com_Chips_yolo11ncnn_YOLO_setOutputPath(JNIEnv *env, jobject thiz, jstring path_) {
-    // TODO: implement setOutputPath()
-    const char* path = env->GetStringUTFChars(path_, nullptr);
-    g_output_path = path;
-    env->ReleaseStringUTFChars(path_, path);
+namespace {
+DetectionOutput detection_output;
+
+bool valid_object(const Object& object)
+{
+    return object.label >= 0 && object.label < class_count &&
+           std::isfinite(object.prob) && object.prob >= 0.f && object.prob <= 1.f &&
+           std::isfinite(object.rect.x) && std::isfinite(object.rect.y) &&
+           std::isfinite(object.rect.width) && std::isfinite(object.rect.height) &&
+           object.rect.width >= 0.f && object.rect.height >= 0.f;
 }
-bool file_exists(const std::string& path) {
-    struct stat buffer;
-    return (stat(path.c_str(), &buffer) == 0);
 }
 
-    extern "C"
-    JNIEXPORT void JNICALL
-    Java_com_Chips_yolo11ncnn_YOLO_setOutputMetadata(JNIEnv *env, jobject thiz, jstring time_,
-                                                     jdouble lat, jdouble lng) {
-        // TODO: implement setOutputMetadata()
-        const char *time = env->GetStringUTFChars(time_, nullptr);
-        LOGD("setOutputMetadata called with time=%s, lat=%f, lng=%f", time, lat, lng);
-        g_output_time = time;
-        g_output_lat = lat;
-        g_output_lng = lng;
-        env->ReleaseStringUTFChars(time_, time);
+extern "C" JNIEXPORT void JNICALL
+Java_com_Chips_yolo11ncnn_YOLO_setOutputPath(JNIEnv* env, jobject, jstring path_)
+{
+    std::string path;
+    if (path_)
+    {
+        const char* chars = env->GetStringUTFChars(path_, nullptr);
+        if (!chars)
+            return;
+        path = chars;
+        env->ReleaseStringUTFChars(path_, chars);
     }
+    detection_output.setPath(path);
+}
 
+extern "C" JNIEXPORT void JNICALL
+Java_com_Chips_yolo11ncnn_YOLO_setOutputMetadata(JNIEnv* env, jobject, jstring time_,
+                                               jdouble latitude, jdouble longitude)
+{
+    std::string time;
+    if (time_)
+    {
+        const char* chars = env->GetStringUTFChars(time_, nullptr);
+        if (!chars)
+            return;
+        time = chars;
+        env->ReleaseStringUTFChars(time_, chars);
+    }
+    detection_output.setMetadata(time, latitude, longitude);
+}
 
 int YOLO11_det::draw(cv::Mat& rgb, const std::vector<Object>& objects) {
-    static const char *class_names[] = {
-            /*"person", "bicycle", "car", "motorcycle", "airplane", "bus", "train", "truck", "boat", "traffic light",
-            "fire hydrant", "stop sign", "parking meter", "bench", "bird", "cat", "dog", "horse", "sheep", "cow",
-            "elephant", "bear", "zebra", "giraffe", "backpack", "umbrella", "handbag", "tie", "suitcase", "frisbee",
-            "skis", "snowboard", "sports ball", "kite", "baseball bat", "baseball glove", "skateboard", "surfboard",
-            "tennis racket", "bottle", "wine glass", "cup", "fork", "knife", "spoon", "bowl", "banana", "apple",
-            "sandwich", "orange", "broccoli", "carrot", "hot dog", "pizza", "donut", "cake", "chair", "couch",
-            "potted plant", "bed", "dining table", "toilet", "tv", "laptop", "mouse", "remote", "keyboard", "cell phone",
-            "microwave", "oven", "toaster", "sink", "refrigerator", "book", "clock", "vase", "scissors", "teddy bear",
-            "hair drier", "toothbrush",*/"W", "P", "S", "I", "A", "WD", "PD", "SD", "ID", "AD"
-    };
+    if (rgb.empty())
+        return -1;
+    for (const Object& object : objects)
+    {
+        if (!valid_object(object))
+            return -1;
+    }
 
     static cv::Scalar colors[] = {
             cv::Scalar(67, 54, 244),
@@ -476,9 +404,6 @@ int YOLO11_det::draw(cv::Mat& rgb, const std::vector<Object>& objects) {
 
         const cv::Scalar &color = colors[i % 19];
 
-        // fprintf(stderr, "%d = %.5f at %.2f %.2f %.2f x %.2f\n", obj.label, obj.prob,
-        // obj.rect.x, obj.rect.y, obj.rect.width, obj.rect.height);
-
         cv::rectangle(rgb, obj.rect, color);
 
         char text[256];
@@ -492,7 +417,7 @@ int YOLO11_det::draw(cv::Mat& rgb, const std::vector<Object>& objects) {
         if (y < 0)
             y = 0;
         if (x + label_size.width > rgb.cols)
-            x = rgb.cols - label_size.width;
+            x = std::max(0, rgb.cols - label_size.width);
 
         cv::rectangle(rgb, cv::Rect(cv::Point(x, y),
                                     cv::Size(label_size.width, label_size.height + baseLine)),
@@ -502,44 +427,8 @@ int YOLO11_det::draw(cv::Mat& rgb, const std::vector<Object>& objects) {
                     cv::FONT_HERSHEY_SIMPLEX, 0.5, cv::Scalar(0, 0, 0));
     }
 
-    bool need_header = !file_exists(g_output_path);
-    if (g_output_path.empty()) {
-        LOGD("Output path is empty.");
-        return 0;
-    }
-    std::string current_output_second = g_output_time.substr(0, 19); // 精确到秒
-    static std::string last_output_second = "";
-    if (current_output_second == last_output_second) {
-        return 0; // 同一秒已写入，跳过
-    }
-    last_output_second = current_output_second;
-    std::ofstream outfile(g_output_path,std::ios::app );
-    if (!outfile.is_open()) {
-        LOGD("Failed to open file for writing: %s", g_output_path.c_str());
-        return 0;
-    }
-    if (need_header) {
-        outfile.write("\xEF\xBB\xBF", 3);
-        outfile <<"时间,纬度,经度,id,类别,置信度\n"<< std::endl;
-    }
-
-
-    for (size_t i = 0; i < objects.size(); i++) {
-        const Object& obj = objects[i];
-        //LOGD("Writing to file: label=%d, prob=%.2f", obj.label, obj.prob);
-        outfile << "\"" << g_output_time << "\","
-                <<  std::fixed << std::setprecision(6) << g_output_lat << ","
-                << std::fixed << std::setprecision(6) << g_output_lng << ","
-                << obj.label << ","
-                << "\"" << class_names[obj.label] << "\","
-                << std::fixed << std::setprecision(2) << obj.prob
-                << "\n";
-        if (outfile.fail()) {
-            LOGD("Failed to write object: label=%d", obj.label);
-        }
-    }
-    outfile.flush();
-    outfile.close();
-
-    return 0;
+    const int result = detection_output.write(objects, class_names, class_count);
+    if (result != 0)
+        LOGD("CSV output failed");
+    return result;
 }

@@ -1,38 +1,37 @@
 package com.Chips.yolo11ncnn;
 
-import android.util.Log;
 import android.widget.TextView;
 
 import com.amap.api.location.AMapLocation;
 
 import java.util.Locale;
 
-public class LocationAcc {
-    private static final String TAG = "Yolo11AccTest";
-    public  static void updateAccuracyText(AMapLocation location, TextView textView){
-        if(location == null || textView == null ){
-            if(textView != null){
-                textView.setText("定位信息不可用");
-            }
+public final class LocationAcc {
+    private LocationAcc() { }
+
+    public static boolean isValidLocation(AMapLocation location) {
+        return location != null && location.getErrorCode() == 0
+                && Double.isFinite(location.getLatitude())
+                && Double.isFinite(location.getLongitude())
+                && Math.abs(location.getLatitude()) <= 90
+                && Math.abs(location.getLongitude()) <= 180
+                && Float.isFinite(location.getAccuracy()) && location.getAccuracy() >= 0;
+    }
+
+    public static void updateAccuracyText(AMapLocation location, TextView textView) {
+        if (textView == null) return;
+        if (!isValidLocation(location)) {
+            textView.setText(location == null ? R.string.location_unavailable : R.string.location_failed);
             return;
         }
-        if(location.getErrorCode() == 0){
-            location.getLocationType();
-            double lat = location.getLatitude();
-            double lon = location.getLongitude();
-            float Accuracy = location.getAccuracy();
-            String time = TimeUtils.convertMillisToTime();
-            int locationType = location.getLocationType();
-            String locationTypeStr = locationTypeString(locationType);
-            String status = String.format(Locale.getDefault(),
-                    "纬度: %f\n经度: %f\n精度: %.2f 米\n定位类型: %s\n时间: %s",
-                    lat, lon, Accuracy, locationTypeStr, time);
-            textView.setText(status);
-        } else {
-            Log.e(TAG, "错误码" + location.getErrorCode() + "错误信息" + location.getErrorInfo());
-        }
+        long time = location.getTime() > 0 ? location.getTime() : System.currentTimeMillis();
+        textView.setText(String.format(Locale.US,
+                "纬度: %.6f\n经度: %.6f\n精度: %.2f 米\n定位类型: %s\n时间: %s",
+                location.getLatitude(), location.getLongitude(), location.getAccuracy(),
+                locationTypeString(location.getLocationType()), TimeUtils.convertMillisToTime(time)));
     }
-    private static String  locationTypeString(int locationType){
+
+    private static String locationTypeString(int locationType) {
         switch (locationType) {
             case AMapLocation.LOCATION_TYPE_GPS:
                 return "GPS 定位";

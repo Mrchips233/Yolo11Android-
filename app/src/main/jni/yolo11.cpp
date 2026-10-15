@@ -14,41 +14,25 @@
 
 #include "yolo11.h"
 
-YOLO11::~YOLO11()
+YOLO11::YOLO11() : det_target_size(320)
 {
-    det_target_size = 320;
-}
-
-int YOLO11::load(const char* parampath, const char* modelpath, bool use_gpu)
-{
-    yolo11.clear();
-
-    yolo11.opt = ncnn::Option();
-
-#if NCNN_VULKAN
-    yolo11.opt.use_vulkan_compute = use_gpu;
-#endif
-
-    yolo11.load_param(parampath);
-    yolo11.load_model(modelpath);
-
-    return 0;
 }
 
 int YOLO11::load(AAssetManager* mgr, const char* parampath, const char* modelpath, bool use_gpu)
 {
     yolo11.clear();
-
     yolo11.opt = ncnn::Option();
 
 #if NCNN_VULKAN
     yolo11.opt.use_vulkan_compute = use_gpu;
 #endif
 
-    yolo11.load_param(mgr, parampath);
-    yolo11.load_model(mgr, modelpath);
-
-    return 0;
+    int result = yolo11.load_param(mgr, parampath);
+    if (result == 0)
+        result = yolo11.load_model(mgr, modelpath);
+    if (result != 0)
+        yolo11.clear();
+    return result;
 }
 
 void YOLO11::set_det_target_size(int target_size)
