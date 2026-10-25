@@ -2,10 +2,8 @@
 <resources>
     <string name="app_name">YOLO 视觉</string>
     <string-array name="model_array">
-        <item>s-640</item>
-        <item>m-640</item>
-        <item>s-320</item>
-        <item>m-320</item>
+        <item>960 · 清晰</item>
+        <item>640 · 流畅</item>
     </string-array>
     <string-array name="cpugpu_array">
         <item>CPU</item>
@@ -26,17 +24,18 @@
     <string name="home_description">识别眼前的目标，记录沿途的现场。\n从实时画面到位置数据，一站完成采集。</string>
     <string name="home_modes">选择采集方式</string>
     <string name="detect_title">实时检测</string>
-    <string name="detect_description">打开相机识别目标，查看检测结果，\n同步记录位置与识别数据。</string>
+    <string name="detect_description">打开相机识别道路标志，查看检测结果，\n同步记录位置与识别数据。</string>
     <string name="record_title">视频采集</string>
     <string name="record_description">录制现场视频与 GPS 轨迹，\n结束后自动抽帧并匹配位置。</string>
     <string name="home_footer">从现场出发，让数据留下线索。</string>
-    <string name="model_badge">YOLO11</string>
+    <string name="model_badge">45 类标志</string>
     <string name="back">返回首页</string>
     <string name="detect_subtitle">相机检测与位置记录</string>
     <string name="record_subtitle">记录画面，同步位置信息</string>
     <string name="camera_preview">相机画面</string>
     <string name="detection_settings">检测设置</string>
-    <string name="detection_model">检测模型</string>
+    <string name="detection_model">输入模式</string>
+    <string name="model_description">YOLO11n · TT100K 45 类，使用官方代码标签。\n960 保留更多小标志细节，640 计算量更小。</string>
     <string name="inference_backend">推理设备</string>
     <string name="location_title">位置信息</string>
     <string name="record_control_label">录制 / 停止</string>
@@ -55,4 +54,24 @@
     <string name="camera_open_failed">相机启动失败，请检查权限或关闭占用相机的应用</string>
     <string name="location_unavailable">定位信息不可用</string>
     <string name="location_failed">定位失败，请检查定位权限与服务</string>
+    <string name="video_import_title">导入视频 · 逐帧识别</string>
+    <string name="video_import_hint">完整解码每一帧，输出带框 JPEG 和 CSV 表格。视频位置使用帧号及时间戳，类别使用 TT100K 官方代码。\n全帧图片会占用较多空间，建议先用短视频。请保持此页面在前台；离开页面将取消，已完成结果保留。</string>
+    <string name="video_choose">1. 选择手机视频</string>
+    <string name="video_choose_output">2. 选择导出文件夹</string>
+    <string name="video_no_source">尚未选择视频</string>
+    <string name="video_no_output">尚未选择文件夹（建议在 Download 中新建目录）</string>
+    <string name="video_start">开始逐帧识别</string>
+    <string name="video_cancel">取消处理</string>
+    <string name="video_loading">正在后台加载模型…</string>
+    <string name="video_ready">选择视频和导出目录后开始。</string>
+    <string name="video_cancelling">正在取消，等待当前帧保存…</string>
+    <string name="video_cancelled">已取消，已完成帧保留，请查看 manifest 状态。</string>
+    <string name="video_complete">逐帧识别完成</string>
+    <string name="video_failed">处理失败，部分结果已保留，请查看 manifest 状态。</string>
+    <string name="video_progress">已输出 %1$d 帧 · 视频位置 %2$.3f / %3$.3f 秒</string>
+    <string name="video_result">已输出 %1$d 张图片，%2$d 个检测目标</string>
+    <string name="video_open_output">打开结果目录</string>
+    <string name="video_open_table">使用表格应用打开 CSV</string>
+    <string name="video_open_fallback">没有可用的打开应用。请在文件管理器中进入刚才选择的导出文件夹查看。</string>
+    <string name="video_preview_hint">表格预览（前 15 条记录，可横向滚动；完整数据见 CSV）</string>
 </resources>

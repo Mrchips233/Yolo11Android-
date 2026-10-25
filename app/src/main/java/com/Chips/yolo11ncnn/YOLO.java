@@ -20,6 +20,7 @@ import android.graphics.PixelFormat;
 import android.os.Bundle;
 import android.util.Log;
 import android.view.MotionEvent;
+import android.view.Surface;
 import android.view.SurfaceHolder;
 import android.view.View;
 import android.view.WindowManager;
@@ -44,6 +45,7 @@ import com.amap.api.maps.model.MyLocationStyle;
 import java.io.File;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.atomic.AtomicLong;
 
 public class YOLO extends AppCompatActivity implements SurfaceHolder.Callback {
     private static final String TAG = "YoloCamera";
@@ -58,8 +60,12 @@ public class YOLO extends AppCompatActivity implements SurfaceHolder.Callback {
     private int currentModel;
     private int currentBackend;
     private boolean resumed;
-    private boolean cameraOpened;
-    private boolean modelLoaded;
+    private volatile NativeRuntime.Session runtime;
+    private final AtomicLong runtimeRevision = new AtomicLong();
+    private Surface outputSurface;
+    // These fields belong only to the process-wide native control executor.
+    private int loadedModel = -1;
+    private int loadedBackend = -1;
 
     @Override
     public void onCreate(Bundle savedInstanceState) {
@@ -70,6 +76,7 @@ public class YOLO extends AppCompatActivity implements SurfaceHolder.Callback {
         AMapLocationClient.updatePrivacyAgree(this, true);
         binding = YolocameraBinding.inflate(getLayoutInflater());
         setContentView(binding.getRoot());
+        createRuntimeSession();
         binding.toolbarBack.setOnClickListener(v -> finish());
         getWindow().addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
 
@@ -100,7 +107,9 @@ public class YOLO extends AppCompatActivity implements SurfaceHolder.Callback {
         binding.cameraview.getHolder().addCallback(this);
         if (savedInstanceState != null) {
             facing = savedInstanceState.getInt("facing", 0) == 1 ? 1 : 0;
-            currentModel = Math.max(0, Math.min(3, savedInstanceState.getInt("model", 0)));
+            int savedModel = savedInstanceState.getInt("model", 0);
+            int modelCount = getResources().getStringArray(R.array.model_array).length;
+            currentModel = savedModel >= 0 && savedModel < modelCount ? savedModel : 0;
             currentBackend = Math.max(0, Math.min(2, savedInstanceState.getInt("backend", 0)));
         }
         binding.spinnerModel.setSelection(currentModel);
@@ -130,25 +139,32 @@ public class YOLO extends AppCompatActivity implements SurfaceHolder.Callback {
             public void onNothingSelected(AdapterView<?> parent) { }
         });
         binding.buttonSwitchCamera.setOnClickListener(v -> {
-            if (!resumed || !modelLoaded || !hasPermission(Manifest.permission.CAMERA)) return;
-            int nextFacing = 1 - facing;
-            stopCamera();
-            if (detector.openCamera(nextFacing)) {
-                facing = nextFacing;
-                cameraOpened = true;
-            } else {
-                Toast.makeText(this, R.string.camera_open_failed, Toast.LENGTH_LONG).show();
-                startCameraIfReady();
-            }
+            if (!resumed || !hasPermission(Manifest.permission.CAMERA)) return;
+            facing = 1 - facing;
+            reloadModel();
         });
 
-        File outputDirectory = getExternalFilesDir(null);
-        if (outputDirectory == null) outputDirectory = getFilesDir();
-        setOutputPath(new File(outputDirectory,
-                System.currentTimeMillis() + "-results.csv").getAbsolutePath());
-        clearMetadata();
         reloadModel();
         requestMissingPermissions();
+    }
+
+    private void createRuntimeSession() {
+        runtimeRevision.incrementAndGet();
+        runtime = NativeRuntime.openSession(() -> {
+            cleanupNativeStep(() -> detector.closeCamera());
+            cleanupNativeStep(() -> detector.setOutputWindow(null));
+            cleanupNativeStep(() -> setOutputPath(null));
+            cleanupNativeStep(() -> setOutputMetadata(null, Double.NaN, Double.NaN));
+        });
+        File directory = getExternalFilesDir(null);
+        if (directory == null) directory = getFilesDir();
+        String path = new File(directory, System.currentTimeMillis() + "-results.csv").getAbsolutePath();
+        runtime.submit(() -> {
+            loadedModel = -1;
+            loadedBackend = -1;
+            setOutputPath(path);
+            setOutputMetadata(null, Double.NaN, Double.NaN);
+        });
     }
 
     private boolean hasPermission(String permission) {
@@ -172,27 +188,88 @@ public class YOLO extends AppCompatActivity implements SurfaceHolder.Callback {
         }
     }
 
-    private void reloadModel() {
-        modelLoaded = detector.loadModel(getAssets(), 0, currentModel, currentBackend);
-        if (modelLoaded) {
-            startCameraIfReady();
-        } else {
-            stopCamera();
-            Toast.makeText(this, R.string.model_load_failed, Toast.LENGTH_LONG).show();
+    private void cleanupNativeStep(Runnable cleanup) {
+        try {
+            cleanup.run();
+        } catch (RuntimeException | LinkageError error) {
+            Log.e(TAG, "Unable to complete native cleanup", error);
         }
     }
 
-    private void startCameraIfReady() {
-        if (!resumed || cameraOpened || !modelLoaded || !hasPermission(Manifest.permission.CAMERA)) return;
-        cameraOpened = detector.openCamera(facing);
-        if (!cameraOpened) Toast.makeText(this, R.string.camera_open_failed, Toast.LENGTH_LONG).show();
+    private boolean isRuntimeRequestCurrent(long revision) {
+        return runtime != null && runtime.isCurrent() && runtimeRevision.get() == revision;
     }
 
-    private void stopCamera() {
-        if (cameraOpened) {
-            detector.closeCamera();
-            cameraOpened = false;
-        }
+    private void showRuntimeStatus(long revision, String text, int errorMessage) {
+        runOnUiThread(() -> {
+            if (!isRuntimeRequestCurrent(revision)) return;
+            binding.runtimeStatus.setText(text);
+            if (errorMessage != 0) Toast.makeText(this, errorMessage, Toast.LENGTH_LONG).show();
+        });
+    }
+
+    private void reloadModel() { updateRuntime(); }
+    private void startCameraIfReady() { updateRuntime(); }
+
+    private void updateRuntime() {
+        if (runtime == null || !runtime.isCurrent()) return;
+        final long revision = runtimeRevision.incrementAndGet();
+        final int model = currentModel;
+        final int backend = currentBackend;
+        final int requestedFacing = facing;
+        final Surface surface = outputSurface;
+        final boolean runCamera = resumed && hasPermission(Manifest.permission.CAMERA)
+                && surface != null && surface.isValid();
+        binding.runtimeStatus.setText(runCamera ? "正在切换模型与相机…" : "等待相机画面或权限");
+        runtime.submit(() -> {
+            try {
+                if (!isRuntimeRequestCurrent(revision)) return;
+                // close joins the current copied frame. It runs on this executor,
+                // with no model/window lock held, and never blocks the UI thread.
+                detector.closeCamera();
+                if (!isRuntimeRequestCurrent(revision)) return;
+                if (!runCamera || !surface.isValid()) {
+                    detector.setOutputWindow(null);
+                    showRuntimeStatus(revision, "相机已暂停", 0);
+                    return;
+                }
+                if (loadedModel != model || loadedBackend != backend) {
+                    loadedModel = -1;
+                    loadedBackend = -1;
+                    if (!detector.loadModel(getAssets(), 0, model, backend)) {
+                        detector.setOutputWindow(null);
+                        showRuntimeStatus(revision, "模型加载失败，请选择可用后端", R.string.model_load_failed);
+                        return;
+                    }
+                    loadedModel = model;
+                    loadedBackend = backend;
+                }
+                if (!isRuntimeRequestCurrent(revision) || !surface.isValid()) return;
+                if (!detector.setOutputWindow(surface) || !detector.openCamera(requestedFacing)) {
+                    detector.closeCamera();
+                    detector.setOutputWindow(null);
+                    showRuntimeStatus(revision, "相机启动失败", R.string.camera_open_failed);
+                    return;
+                }
+                if (!isRuntimeRequestCurrent(revision)) {
+                    // Main-thread pause/rotation/selection may invalidate a task
+                    // while openCamera is in progress. Never leave that camera live.
+                    detector.closeCamera();
+                    detector.setOutputWindow(null);
+                    return;
+                }
+                String input = model == 0 ? "960" : "640";
+                String mode = backend == 0 ? "CPU" : backend == 1 ? "GPU" : "Turnip";
+                showRuntimeStatus(revision, "检测中 · " + input + " · " + mode, 0);
+            } catch (RuntimeException | LinkageError error) {
+                Log.e(TAG, "Unable to configure native detector", error);
+                loadedModel = -1;
+                loadedBackend = -1;
+                cleanupNativeStep(() -> detector.closeCamera());
+                cleanupNativeStep(() -> detector.setOutputWindow(null));
+                showRuntimeStatus(revision, "运行环境初始化失败，请重新选择模型或后端", R.string.model_load_failed);
+            }
+        });
     }
 
     private void startLocationIfAllowed() {
@@ -229,32 +306,41 @@ public class YOLO extends AppCompatActivity implements SurfaceHolder.Callback {
         }
         if (mapLocationListener != null) mapLocationListener.onLocationChanged(location);
         long time = location.getTime() > 0 ? location.getTime() : System.currentTimeMillis();
-        setOutputMetadata(TimeUtils.formatTimestamp(time), location.getLatitude(), location.getLongitude());
+        String timestamp = TimeUtils.formatTimestamp(time);
+        double latitude = location.getLatitude();
+        double longitude = location.getLongitude();
+        runtime.submit(() -> setOutputMetadata(timestamp, latitude, longitude));
     }
 
     private void clearMetadata() {
-        setOutputMetadata(null, Double.NaN, Double.NaN);
+        if (runtime != null) runtime.submit(() -> setOutputMetadata(null, Double.NaN, Double.NaN));
     }
 
     @Override
     public void surfaceCreated(@NonNull SurfaceHolder holder) {
-        detector.setOutputWindow(holder.getSurface());
+        outputSurface = holder.getSurface();
+        updateRuntime();
     }
 
     @Override
     public void surfaceChanged(@NonNull SurfaceHolder holder, int format, int width, int height) {
-        detector.setOutputWindow(holder.getSurface());
+        outputSurface = holder.getSurface();
+        updateRuntime();
     }
 
     @Override
     public void surfaceDestroyed(@NonNull SurfaceHolder holder) {
-        detector.setOutputWindow(null);
+        outputSurface = null;
+        updateRuntime();
     }
 
     @Override
     protected void onResume() {
         super.onResume();
         resumed = true;
+        // Returning from video evaluation acquires the process-global native
+        // state again; an old Activity/session must never control its successor.
+        if (runtime == null || !runtime.isCurrent()) createRuntimeSession();
         binding.mapYolo.onResume();
         startLocationIfAllowed();
         startCameraIfReady();
@@ -263,7 +349,7 @@ public class YOLO extends AppCompatActivity implements SurfaceHolder.Callback {
     @Override
     protected void onPause() {
         resumed = false;
-        stopCamera();
+        updateRuntime();
         if (locationClient != null) locationClient.stopLocation();
         map.setMyLocationEnabled(false);
         clearMetadata();
@@ -273,10 +359,8 @@ public class YOLO extends AppCompatActivity implements SurfaceHolder.Callback {
 
     @Override
     protected void onDestroy() {
-        stopCamera();
-        detector.setOutputWindow(null);
-        setOutputPath(null);
-        clearMetadata();
+        runtimeRevision.incrementAndGet();
+        if (runtime != null) runtime.close();
         if (locationClient != null) {
             locationClient.stopLocation();
             locationClient.onDestroy();

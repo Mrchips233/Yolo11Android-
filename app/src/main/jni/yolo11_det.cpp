@@ -13,10 +13,11 @@
 // specific language governing permissions and limitations under the License.
 
 // The dynamically shaped output has one row per stride-8/16/32 grid cell.
-// Each row contains four 16-bin box distributions and the ten trained classes.
+// Each row contains four 16-bin box distributions and 45 TT100K class logits.
 
 #include "yolo11.h"
 #include "detection_output.h"
+#include "tt100k45_labels.h"
 
 #include <opencv2/core/core.hpp>
 #include <opencv2/imgproc/imgproc.hpp>
@@ -36,11 +37,6 @@ static inline float intersection_area(const Object& a, const Object& b)
     cv::Rect_<float> inter = a.rect & b.rect;
     return inter.area();
 }
-
-static const char* const class_names[] = {
-    "W", "P", "S", "I", "A", "WD", "PD", "SD", "ID", "AD"
-};
-static const int class_count = sizeof(class_names) / sizeof(class_names[0]);
 
 static void nms_sorted_bboxes(const std::vector<Object>& objects, std::vector<int>& picked, float nms_threshold)
 {
@@ -78,7 +74,11 @@ static void nms_sorted_bboxes(const std::vector<Object>& objects, std::vector<in
         }
 
         if (keep)
+        {
             picked.push_back(i);
+            if (picked.size() >= 300)
+                break;
+        }
     }
 }
 
@@ -179,8 +179,9 @@ int YOLO11_det::detect(const cv::Mat& rgb, std::vector<Object>& objects)
     if (rgb.empty() || rgb.type() != CV_8UC3 || !rgb.isContinuous() || det_target_size <= 0)
         return -1;
     const int target_size = det_target_size;
-    const float prob_threshold = 0.25f;
-    const float nms_threshold = 0.45f;
+    // Confidence selected on validation; NMS matches the evaluated checkpoint.
+    const float prob_threshold = 0.465f;
+    const float nms_threshold = 0.7f;
 
     int img_w = rgb.cols;
     int img_h = rgb.rows;

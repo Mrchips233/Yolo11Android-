@@ -22,6 +22,7 @@ android {
         archivesBaseName = "$applicationId"
 
         minSdk 24
+        testInstrumentationRunner 'androidx.test.runner.AndroidJUnitRunner'
         manifestPlaceholders = [AMAP_API_KEY: amapApiKey]
 
         externalNativeBuild {
@@ -32,6 +33,12 @@ android {
     }
     buildFeatures {
         viewBinding = true
+    }
+
+    buildTypes {
+        debug {
+            applicationIdSuffix '.debug'
+        }
     }
 
     externalNativeBuild {
@@ -61,4 +68,6 @@ dependencies {
     implementation 'com.amap.api:3dmap-location-search:10.0.1000_loc6.4.8_sea9.7.4'
 
     testImplementation 'junit:junit:4.13.2'
+    androidTestImplementation 'androidx.test:runner:1.6.2'
+    androidTestImplementation 'androidx.test.ext:junit:1.2.1'
 }

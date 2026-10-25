@@ -1,0 +1,35 @@
+{
+  "source": "TT100K official-train fixed-seed validation split, 10887.jpg; not test",
+  "source_url": "https://cg.cs.tsinghua.edu.cn/traffic-sign/",
+  "source_sha256": "33cfd078343a7a4da8acb53c55032b3a1cf66dc24a9c17b011d2e21fcd71c05f",
+  "fixture": "tt100k_val_10887_640.png",
+  "fixture_sha256": "50612a76c6c2df6aa34af4e08bc753ef8b6a80d427183b5c6731721a90a464b2",
+  "fixture_conversion": "OpenCV INTER_LINEAR resize 2048x2048 to 640x640; lossless opaque PNG",
+  "checkpoint_sha256": "0f3593fe0fe5470790313e2aca0857c30493629fb12789f5843c136e3a3855f2",
+  "oracle": "Ultralytics PyTorch CPU float32, imgsz=640 conf=0.465 class-aware NMS IoU=0.7 max_det=300",
+  "input_width": 640,
+  "input_height": 640,
+  "row_schema": [
+    "label",
+    "probability",
+    "x",
+    "y",
+    "width",
+    "height"
+  ],
+  "expected": [
+    [
+      29,
+      0.9695825576782227,
+      79.75831604003906,
+      110.41677856445312,
+      36.11592102050781,
+      47.040252685546875
+    ]
+  ],
+  "tolerance": {
+    "box_pixels": 2.5,
+    "probability": 0.02
+  },
+  "blank_114_expected_count": 0
+}

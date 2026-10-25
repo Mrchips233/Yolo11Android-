@@ -110,6 +110,10 @@
             app:iconSize="20dp"
             app:iconTint="@color/ui_primary" />
 
+        <TextView android:id="@+id/runtimeStatus" style="@style/Ui.Caption"
+            android:layout_width="match_parent" android:layout_height="wrap_content"
+            android:layout_marginTop="12dp" android:accessibilityLiveRegion="polite" />
+
         <TextView
             style="@style/Ui.SectionTitle"
             android:layout_width="match_parent"
@@ -188,6 +192,14 @@
                     android:spinnerMode="dropdown" />
             </LinearLayout>
         </LinearLayout>
+
+        <TextView
+            style="@style/Ui.Caption"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="12dp"
+            android:lineSpacingExtra="4dp"
+            android:text="@string/model_description" />
 
         <LinearLayout
             android:layout_width="match_parent"

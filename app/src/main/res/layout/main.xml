@@ -209,6 +209,14 @@
             </LinearLayout>
         </LinearLayout>
 
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/importVideoButton"
+            style="@style/Ui.PrimaryButton"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="20dp"
+            android:text="@string/video_import_title" />
+
         <TextView
             style="@style/Ui.Caption"
             android:layout_width="match_parent"

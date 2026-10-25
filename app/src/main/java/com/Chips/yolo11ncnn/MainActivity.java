@@ -25,5 +25,8 @@ public class MainActivity extends AppCompatActivity {
             startActivity(intent);
         });
 
+        binding.importVideoButton.setOnClickListener(v ->
+                startActivity(new Intent(this, VideoRecognitionActivity.class)));
+
     }
 }

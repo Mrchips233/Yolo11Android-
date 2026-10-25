@@ -1,0 +1,56 @@
+<?xml version="1.0" encoding="utf-8"?>
+<ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent" android:layout_height="match_parent"
+    android:background="@color/ui_background" android:fillViewport="true" android:fitsSystemWindows="true">
+    <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content"
+        android:orientation="vertical" android:padding="20dp">
+        <ImageButton android:id="@+id/toolbarBack" android:layout_width="48dp" android:layout_height="48dp"
+            android:background="@drawable/bg_icon_button" android:src="@drawable/ic_back"
+            android:contentDescription="@string/back" android:padding="13dp" />
+        <TextView style="@style/Ui.Title" android:layout_width="match_parent" android:layout_height="wrap_content"
+            android:layout_marginTop="16dp" android:text="@string/video_import_title" />
+        <TextView style="@style/Ui.Body" android:layout_width="match_parent" android:layout_height="wrap_content"
+            android:layout_marginTop="12dp" android:text="@string/video_import_hint" />
+        <com.google.android.material.button.MaterialButton android:id="@+id/chooseVideo" style="@style/Ui.SecondaryButton"
+            android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="16dp"
+            android:text="@string/video_choose" />
+        <TextView android:id="@+id/videoSource" style="@style/Ui.Caption" android:layout_width="match_parent"
+            android:layout_height="wrap_content" android:text="@string/video_no_source" android:textIsSelectable="true" />
+        <com.google.android.material.button.MaterialButton android:id="@+id/chooseOutput" style="@style/Ui.SecondaryButton"
+            android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="12dp"
+            android:text="@string/video_choose_output" />
+        <TextView android:id="@+id/videoOutput" style="@style/Ui.Caption" android:layout_width="match_parent"
+            android:layout_height="wrap_content" android:text="@string/video_no_output" android:textIsSelectable="true" />
+        <TextView style="@style/Ui.Caption" android:layout_width="match_parent" android:layout_height="wrap_content"
+            android:layout_marginTop="16dp" android:labelFor="@id/videoModel" android:text="@string/detection_model" />
+        <Spinner android:id="@+id/videoModel" android:layout_width="match_parent" android:layout_height="52dp"
+            android:entries="@array/model_array" android:background="@drawable/bg_input" />
+        <TextView style="@style/Ui.Caption" android:layout_width="match_parent" android:layout_height="wrap_content"
+            android:layout_marginTop="12dp" android:labelFor="@id/videoBackend" android:text="@string/inference_backend" />
+        <Spinner android:id="@+id/videoBackend" android:layout_width="match_parent" android:layout_height="52dp"
+            android:entries="@array/cpugpu_array" android:background="@drawable/bg_input" />
+        <com.google.android.material.button.MaterialButton android:id="@+id/startProcessing" style="@style/Ui.PrimaryButton"
+            android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="20dp"
+            android:text="@string/video_start" />
+        <com.google.android.material.button.MaterialButton android:id="@+id/cancelProcessing" style="@style/Ui.SecondaryButton"
+            android:layout_width="match_parent" android:layout_height="wrap_content" android:text="@string/video_cancel" />
+        <ProgressBar android:id="@+id/videoProgress" style="?android:attr/progressBarStyleHorizontal"
+            android:layout_width="match_parent" android:layout_height="wrap_content" android:max="100"
+            android:indeterminate="false" android:layout_marginTop="16dp" />
+        <TextView android:id="@+id/videoStatus" style="@style/Ui.Body" android:layout_width="match_parent"
+            android:layout_height="wrap_content" android:layout_marginTop="12dp" android:text="@string/video_ready"
+            android:accessibilityLiveRegion="polite" android:textIsSelectable="true" />
+        <com.google.android.material.button.MaterialButton android:id="@+id/openOutput" style="@style/Ui.SecondaryButton"
+            android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="16dp"
+            android:text="@string/video_open_output" />
+        <com.google.android.material.button.MaterialButton android:id="@+id/openTable" style="@style/Ui.SecondaryButton"
+            android:layout_width="match_parent" android:layout_height="wrap_content" android:text="@string/video_open_table" />
+        <TextView style="@style/Ui.Caption" android:layout_width="match_parent" android:layout_height="wrap_content"
+            android:layout_marginTop="16dp" android:text="@string/video_preview_hint" />
+        <HorizontalScrollView android:layout_width="match_parent" android:layout_height="wrap_content">
+            <TableLayout android:id="@+id/tablePreview" android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:paddingTop="12dp" android:paddingBottom="16dp" />
+        </HorizontalScrollView>
+    </LinearLayout>
+</ScrollView>
