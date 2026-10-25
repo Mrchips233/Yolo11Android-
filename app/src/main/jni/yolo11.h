@@ -15,33 +15,25 @@
 #ifndef YOLO11_H
 #define YOLO11_H
 
+#include <vector>
+
 #include <opencv2/core/core.hpp>
 
 #include <net.h>
 
-struct KeyPoint
-{
-    cv::Point2f p;
-    float prob;
-};
-
 struct Object
 {
     cv::Rect_<float> rect;
-    cv::RotatedRect rrect;
     int label;
     float prob;
-    int gindex;
-    cv::Mat mask;
-    std::vector<KeyPoint> keypoints;
 };
 
 class YOLO11
 {
 public:
-    virtual ~YOLO11();
+    YOLO11();
+    virtual ~YOLO11() = default;
 
-    int load(const char* parampath, const char* modelpath, bool use_gpu = false);
     int load(AAssetManager* mgr, const char* parampath, const char* modelpath, bool use_gpu = false);
 
     void set_det_target_size(int target_size);
@@ -57,36 +49,8 @@ protected:
 class YOLO11_det : public YOLO11
 {
 public:
-    virtual int detect(const cv::Mat& rgb, std::vector<Object>& objects);
-    virtual int draw(cv::Mat& rgb, const std::vector<Object>& objects);
+    int detect(const cv::Mat& rgb, std::vector<Object>& objects) override;
+    int draw(cv::Mat& rgb, const std::vector<Object>& objects) override;
 };
-
-/*class YOLO11_seg : public YOLO11
-{
-public:
-    virtual int detect(const cv::Mat& rgb, std::vector<Object>& objects);
-    virtual int draw(cv::Mat& rgb, const std::vector<Object>& objects);
-};
-
-class YOLO11_pose : public YOLO11
-{
-public:
-    virtual int detect(const cv::Mat& rgb, std::vector<Object>& objects);
-    virtual int draw(cv::Mat& rgb, const std::vector<Object>& objects);
-};
-
-class YOLO11_cls : public YOLO11
-{
-public:
-    virtual int detect(const cv::Mat& rgb, std::vector<Object>& objects);
-    virtual int draw(cv::Mat& rgb, const std::vector<Object>& objects);
-};
-
-class YOLO11_obb : public YOLO11
-{
-public:
-    virtual int detect(const cv::Mat& rgb, std::vector<Object>& objects);
-    virtual int draw(cv::Mat& rgb, const std::vector<Object>& objects);
-};*/
 
 #endif // YOLO11_H

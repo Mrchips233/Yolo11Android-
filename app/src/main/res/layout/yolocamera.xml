@@ -32,7 +32,7 @@
                 android:contentDescription="@string/back"
                 android:padding="13dp"
                 android:src="@drawable/ic_back"
-                android:tint="@color/ui_text" />
+                app:tint="@color/ui_text" />
 
             <LinearLayout
                 android:layout_width="0dp"
@@ -109,6 +109,10 @@
             app:iconPadding="10dp"
             app:iconSize="20dp"
             app:iconTint="@color/ui_primary" />
+
+        <TextView android:id="@+id/runtimeStatus" style="@style/Ui.Caption"
+            android:layout_width="match_parent" android:layout_height="wrap_content"
+            android:layout_marginTop="12dp" android:accessibilityLiveRegion="polite" />
 
         <TextView
             style="@style/Ui.SectionTitle"
@@ -189,6 +193,14 @@
             </LinearLayout>
         </LinearLayout>
 
+        <TextView
+            style="@style/Ui.Caption"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="12dp"
+            android:lineSpacingExtra="4dp"
+            android:text="@string/model_description" />
+
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
@@ -203,7 +215,7 @@
                 android:layout_marginEnd="8dp"
                 android:importantForAccessibility="no"
                 android:src="@drawable/ic_location"
-                android:tint="@color/ui_primary" />
+                app:tint="@color/ui_primary" />
 
             <TextView
                 style="@style/Ui.SectionTitle"

@@ -1,0 +1,6 @@
+<resources>
+    <style name="Theme.Custom" parent="Base.Theme.Custom">
+        <item name="android:windowLightNavigationBar">false</item>
+        <item name="android:forceDarkAllowed">false</item>
+    </style>
+</resources>

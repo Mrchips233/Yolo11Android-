@@ -23,7 +23,18 @@
 #include <camera/NdkCameraMetadata.h>
 #include <media/NdkImageReader.h>
 
+#include <condition_variable>
+#include <memory>
+#include <mutex>
+#include <thread>
+#include <utility>
+#include <vector>
+
+#include "camera_frame_pipeline.h"
+
 #include <opencv2/core/core.hpp>
+
+struct CameraStatistics;
 
 class NdkCamera
 {
@@ -31,19 +42,45 @@ public:
     NdkCamera();
     virtual ~NdkCamera();
 
-    // facing 0=front 1=back
+    // facing 0=front 1=back. open/close are blocking lifecycle operations:
+    // call from the serialized control thread, never from an image callback or
+    // frame worker, and never while holding model/render locks used by on_image.
+    // close stops admission, drops the one pending frame, then joins any render.
     int open(int camera_facing = 0);
-    void close();
+    virtual void close();
 
-    virtual void on_image(const cv::Mat& rgb) const;
+    virtual void on_image(const unsigned char* nv21, int nv21_width, int nv21_height) const = 0;
 
-    virtual void on_image(const unsigned char* nv21, int nv21_width, int nv21_height) const;
-
-public:
+protected:
     int camera_facing;
     int camera_orientation;
 
 private:
+    static void onImageAvailable(void* context, AImageReader* reader);
+    void process_images();
+    void close_locked();
+
+    struct OwnedFrame
+    {
+        OwnedFrame() : width(0), height(0) {}
+        void swap(OwnedFrame& other)
+        {
+            pixels.swap(other.pixels);
+            std::swap(width, other.width);
+            std::swap(height, other.height);
+        }
+        std::vector<unsigned char> pixels;
+        int width;
+        int height;
+    };
+
+    std::mutex camera_mutex;
+    std::mutex image_mutex;
+    std::condition_variable frame_ready;
+    std::thread frame_worker;
+    CameraLatestFrameSlot<OwnedFrame> latest_frame;
+    OwnedFrame copy_frame;
+    std::shared_ptr<CameraStatistics> statistics;
     ACameraManager* camera_manager;
     ACameraDevice* camera_device;
     AImageReader* image_reader;
@@ -59,20 +96,21 @@ class NdkCameraWindow : public NdkCamera
 {
 public:
     NdkCameraWindow();
-    virtual ~NdkCameraWindow();
+    ~NdkCameraWindow() override;
 
+    void close() override;
     void set_window(ANativeWindow* win);
 
-    virtual void on_image_render(cv::Mat& rgb) const;
+    virtual void on_image_render(cv::Mat& rgb) const = 0;
 
-    virtual void on_image(const unsigned char* nv21, int nv21_width, int nv21_height) const;
-
-public:
-    mutable int accelerometer_orientation;
+    void on_image(const unsigned char* nv21, int nv21_width, int nv21_height) const override;
 
 private:
+    mutable int accelerometer_orientation;
+    mutable std::mutex window_mutex;
     ASensorManager* sensor_manager;
     mutable ASensorEventQueue* sensor_event_queue;
+    mutable ALooper* sensor_looper;
     const ASensor* accelerometer_sensor;
     ANativeWindow* win;
 };

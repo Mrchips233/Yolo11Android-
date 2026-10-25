@@ -1,64 +1,54 @@
 package com.Chips.yolo11ncnn;
 
-import android.content.ContentResolver;
 import android.content.Context;
-import android.database.Cursor;
 import android.net.Uri;
-import android.os.Build;
-import android.provider.MediaStore;
-import android.webkit.MimeTypeMap;
+import android.util.Log;
 
-
-import androidx.appcompat.app.AppCompatActivity;
-
+import java.io.Closeable;
 import java.io.File;
 import java.io.FileOutputStream;
+import java.io.IOException;
 import java.io.InputStream;
-import java.io.OutputStream;
+import java.io.InterruptedIOException;
 
-public class FileUtils  {
-    public static String getpath(Context context, Uri uri){
-        if(Build.VERSION.SDK_INT < Build.VERSION_CODES.Q){
-            String[] projection = {MediaStore.Video.Media.DATA};
-            try(Cursor cursor = context.getContentResolver().query(uri,projection,null,null,null)){
-                if(cursor != null && cursor.moveToFirst()){
-                    int columnIndex = cursor.getColumnIndexOrThrow(MediaStore.Video.Media.DATA);
-                    return cursor.getString(columnIndex);
-                }
-            }catch (Exception e){
-                e.printStackTrace();
-            }
-        }
-        return copyUriToInternalFile(context,uri);
-    }
+/** Cache fallback for providers that MediaExtractor cannot open directly. */
+public final class FileUtils {
+    private FileUtils() { }
 
-    private static String copyUriToInternalFile(Context context, Uri uri){
-        try{
-            ContentResolver resolver = context.getContentResolver();
-            String extension = getExtension(resolver, uri);
-            String fileName = "Video_Temp_" + System.currentTimeMillis() + (extension != null? "."+ extension :".mp4");
-            File outFile = new File(context.getFilesDir(),fileName);
-
-            try(InputStream in = resolver.openInputStream(uri);
-                OutputStream out = new FileOutputStream(outFile)){
-                byte[] buffer = new byte[4096];
+    /** Call on a worker thread. Closing the handle removes its temporary copy. */
+    public static CachedVideo copyVideoToCache(Context context, Uri uri) throws IOException {
+        File temporary = File.createTempFile("frame-input-", ".video", context.getCacheDir());
+        boolean complete = false;
+        try {
+            try (InputStream input = context.getContentResolver().openInputStream(uri);
+                 FileOutputStream output = new FileOutputStream(temporary)) {
+                if (input == null) throw new IOException("无法读取视频 URI");
+                byte[] buffer = new byte[64 * 1024];
                 int length;
-                if (in != null) {
-                    while((length = in.read(buffer)) > 0){
-                        out.write(buffer, 0, length);
-                    }
+                while ((length = input.read(buffer)) != -1) {
+                    if (Thread.currentThread().isInterrupted()) throw new InterruptedIOException("已取消视频读取");
+                    output.write(buffer, 0, length);
                 }
-                out.flush();
+                if (temporary.length() == 0) throw new IOException("视频文件为空");
             }
-            return outFile.getAbsolutePath();
-        }catch (Exception e){
-            e.printStackTrace();
-            return null;
+            complete = true;
+            return new CachedVideo(temporary);
+        } finally {
+            if (!complete && !temporary.delete()) {
+                Log.w("FileUtils", "无法删除未完成的临时视频: " + temporary.getName());
+            }
         }
     }
 
-    private static String getExtension(ContentResolver resolver , Uri uri){
-        String mimeType = resolver.getType(uri);
-        return MimeTypeMap.getSingleton().getExtensionFromMimeType(mimeType);
+    public static final class CachedVideo implements Closeable {
+        public final File file;
+
+        private CachedVideo(File file) {
+            this.file = file;
+        }
+
+        @Override public void close() throws IOException {
+            if (file.exists() && !file.delete()) throw new IOException("无法删除临时视频: " + file.getName());
+        }
     }
 }

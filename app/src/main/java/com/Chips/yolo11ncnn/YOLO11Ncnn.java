@@ -15,16 +15,21 @@
 package com.Chips.yolo11ncnn;
 
 import android.content.res.AssetManager;
+import android.graphics.Bitmap;
 import android.view.Surface;
 
-import androidx.appcompat.app.AppCompatActivity;
 
-import java.io.File;
-
-public class YOLO11Ncnn
-{
-
+public final class YOLO11Ncnn {
     public native boolean loadModel(AssetManager mgr, int taskid, int modelid, int cpugpu);
+    /**
+     * Runs the currently loaded model without camera drawing or location/CSV writes.
+     * Call on the shared serial native executor with an unrecycled software
+     * {@link Bitmap.Config#ARGB_8888} bitmap. Each detection occupies six values:
+     * [zero-based label, probability, x, y, width, height], in bitmap pixels.
+     * No detections returns an empty array. Invalid input, unavailable models,
+     * or inference failures throw an exception; callers must handle failures.
+     */
+    public native float[] detectBitmap(Bitmap bitmap);
     public native boolean openCamera(int facing);
     public native boolean closeCamera();
     public native boolean setOutputWindow(Surface surface);
@@ -32,9 +37,5 @@ public class YOLO11Ncnn
     static {
         System.loadLibrary("yolo11ncnn");
     }
-
-
-
-
 }
 

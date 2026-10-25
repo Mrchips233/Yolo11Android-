@@ -1,0 +1,175 @@
+{
+  "model_id": "tt100k45_yolo11n_improved_20261016_163748_best",
+  "architecture": "Ultralytics YOLO11n detect",
+  "class_count": 45,
+  "reg_max": 16,
+  "strides": [
+    8,
+    16,
+    32
+  ],
+  "names": [
+    "i2",
+    "i4",
+    "i5",
+    "il100",
+    "il60",
+    "il80",
+    "io",
+    "ip",
+    "p10",
+    "p11",
+    "p12",
+    "p19",
+    "p23",
+    "p26",
+    "p27",
+    "p3",
+    "p5",
+    "p6",
+    "pg",
+    "ph4",
+    "ph4.5",
+    "ph5",
+    "pl100",
+    "pl120",
+    "pl20",
+    "pl30",
+    "pl40",
+    "pl5",
+    "pl50",
+    "pl60",
+    "pl70",
+    "pl80",
+    "pm20",
+    "pm30",
+    "pm55",
+    "pn",
+    "pne",
+    "po",
+    "pr40",
+    "w13",
+    "w32",
+    "w55",
+    "w57",
+    "w59",
+    "wo"
+  ],
+  "checkpoint": {
+    "filename": "best.pt",
+    "bytes": 5595738,
+    "sha256": "0f3593fe0fe5470790313e2aca0857c30493629fb12789f5843c136e3a3855f2"
+  },
+  "input": {
+    "blob": "in0",
+    "layout": "CHW, batch=1",
+    "channels": 3,
+    "color": "RGB",
+    "normalization": "pixel / 255",
+    "padding_value": 114,
+    "height_width": "dynamic, multiples of 32",
+    "tested_hw": [
+      [
+        640,
+        640
+      ],
+      [
+        960,
+        960
+      ],
+      [
+        480,
+        960
+      ],
+      [
+        960,
+        544
+      ],
+      [
+        384,
+        640
+      ],
+      [
+        640,
+        384
+      ]
+    ]
+  },
+  "output": {
+    "blob": "out0",
+    "ncnn_dims": 2,
+    "row_width": 109,
+    "row_count": "sum((H / stride) * (W / stride)) for stride in 8,16,32",
+    "column_order": "64 raw DFL logits (left, top, right, bottom; 16 bins each), then 45 class logits",
+    "row_order": "stride 8,16,32; within each level, y-major then x",
+    "already_decoded": false,
+    "contains_sigmoid": false,
+    "contains_nms": false
+  },
+  "precision": "FP32 weights; no INT8 quantization",
+  "export": {
+    "python": "3.11.16",
+    "torch": "2.14.0+cu132",
+    "ultralytics": "8.4.177",
+    "pnnx": "20260526",
+    "method": "fuse Conv+BatchNorm, override Detect to raw DFL plus class logits, torch.jit.trace, pnnx with two spatial shapes",
+    "shape1": [
+      1,
+      3,
+      640,
+      640
+    ],
+    "shape2": [
+      1,
+      3,
+      480,
+      960
+    ],
+    "fp16": false,
+    "training_environment_changed": false
+  },
+  "artifacts": {
+    "yolo11n_tt100k45.param": {
+      "filename": "yolo11n_tt100k45.param",
+      "bytes": 21314,
+      "sha256": "c11fa69dcb12e24d6d35a87e2bc5cc86ff9d464e2e4637ec008aaa3086481694"
+    },
+    "yolo11n_tt100k45.bin": {
+      "filename": "yolo11n_tt100k45.bin",
+      "bytes": 10431256,
+      "sha256": "b1f9200d79e0008ffbd713297013ecc529de53bd3dcfeffad31b6d9c3c3775f8"
+    },
+    "tt100k45.labels.txt": {
+      "filename": "tt100k45.labels.txt",
+      "bytes": 234,
+      "sha256": "50643c2806f4f6b06a7eda521219b06495d8a7834b6b9f7ea3711af5be5401b4"
+    }
+  },
+  "verification": {
+    "runtime": "ncnn 1.0.20250503 CPU (same release as Android bundle)",
+    "raw_tensor_and_decoded_predictions": "verification_ncnn_20250503.json",
+    "val20_predictions": "verification_val20.json",
+    "validation_only": true,
+    "android_device_performance_measured": false,
+    "decode_thresholds": {
+      "probability": 0.465,
+      "class_aware_nms_iou": 0.7,
+      "max_detections": 300,
+      "selection_source": "validation set; not test"
+    }
+  },
+  "dataset": "TT100K 2016, official 45-class subset; source uses CC-BY-NC terms",
+  "license_note": "Ultralytics code/model distribution terms must be retained and reviewed along with TT100K noncommercial terms.",
+  "deployment": {
+    "default_long_edge": 960,
+    "available_long_edges": [
+      960,
+      640
+    ],
+    "probability": 0.465,
+    "class_aware_nms_iou": 0.7,
+    "max_detections": 300,
+    "labels": "TT100K official class codes; checkpoint order",
+    "camera_capture": "Advertised YUV output; prefer 1280x720, then 1280x960; supported fallback"
+  }
+}

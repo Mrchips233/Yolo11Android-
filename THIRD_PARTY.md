@@ -8,6 +8,7 @@
 | AndroidX / CameraX | Google Maven，版本见 `app/build.gradle` | Activity、界面与视频录制；保留其发行包附带的许可证。 |
 | 高德 SDK | [高德开放平台](https://lbs.amap.com/)，版本见 `app/build.gradle` | 地图与定位；需自行申请 Key，并遵循服务条款和隐私要求。 |
 | Turnip | `app/src/main/jniLibs/arm64-v8a/libvulkan_freedreno.so` | 仓库内现有预编译驱动；原始构建来源、对应版本及完整授权声明尚需维护者补充，不能仅由文件名推断。 |
-| YOLO11 模型 | 仓库现有自训练 `yolo11s` / `yolo11m` ncnn 模型 | 训练代码、数据集来源、类别释义、导出命令与授权记录尚未提供。若基于 [Ultralytics](https://github.com/ultralytics/ultralytics) 训练或导出，需核对适用许可证及模型分发条件。 |
+| YOLO11 模型 | [Ultralytics YOLO11](https://github.com/ultralytics/ultralytics)，8.4.177；TT100K45 微调 YOLO11n | 权重、导出协议及哈希见 [模型记录](docs/tt100k45-model.md) 和 assets 元数据。Ultralytics 适用 AGPL-3.0 或相应商业授权，模型导出不会改变上游授权条件。 |
+| TT100K | [清华大学 TT100K 2016](https://cg.cs.tsinghua.edu.cn/traffic-sign/)，45 类子集 | 训练数据来源遵循官网标明的 CC-BY-NC 非商业条款；仓库只包含派生检测模型与类别代码，不打包数据集。项目未新增或代替上游授权。 |
 
 仓库目前没有为项目自身指定根目录 LICENSE。发布或再分发前，应由权利人明确项目代码、模型及训练数据的授权范围，并补齐缺失的第三方声明；不能根据某个依赖的许可证推断整个项目的许可证。

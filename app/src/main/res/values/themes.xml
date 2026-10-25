@@ -1,5 +1,5 @@
 <resources>
-    <style name="Theme.Custom" parent="Theme.MaterialComponents.NoActionBar">
+    <style name="Base.Theme.Custom" parent="Theme.MaterialComponents.NoActionBar">
         <item name="colorPrimary">@color/ui_primary</item>
         <item name="colorPrimaryVariant">@color/ui_primary_muted</item>
         <item name="colorOnPrimary">@color/ui_on_primary</item>
@@ -15,13 +15,13 @@
         <item name="android:statusBarColor">@color/ui_background</item>
         <item name="android:navigationBarColor">@color/ui_background</item>
         <item name="android:windowLightStatusBar">false</item>
-        <item name="android:windowLightNavigationBar">false</item>
         <item name="android:fontFamily">sans</item>
         <item name="android:textColorPrimary">@color/ui_text</item>
         <item name="android:textColorSecondary">@color/ui_text_secondary</item>
         <item name="android:windowActionModeOverlay">true</item>
-        <item name="android:forceDarkAllowed">false</item>
     </style>
+
+    <style name="Theme.Custom" parent="Base.Theme.Custom" />
 
     <style name="Ui.Title" parent="@android:style/Widget.TextView">
         <item name="android:fontFamily">sans-serif-medium</item>
@@ -70,12 +70,5 @@
         <item name="strokeColor">@color/ui_border</item>
         <item name="strokeWidth">1dp</item>
         <item name="iconTint">@color/ui_text</item>
-    </style>
-    <style name="Ui.IconButton" parent="Widget.AppCompat.ImageButton">
-        <item name="android:background">@drawable/bg_icon_button</item>
-        <item name="android:padding">12dp</item>
-        <item name="android:minWidth">48dp</item>
-        <item name="android:minHeight">48dp</item>
-        <item name="android:tint">@color/ui_text</item>
     </style>
 </resources>
